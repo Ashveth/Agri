@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-brand-bg: #F4F7F2;
+  --color-brand-primary: #2E7D32;
+  --color-brand-dark: #1B3022;
+  --color-brand-muted: #5C715E;
+  --color-brand-border: #E0E7DE;
+  --color-brand-surface: #F9FBF9;
+  --color-brand-highlight: #E8F5E9;
+  --color-brand-highlight-border: #C8E6C9;
+}
+
+@layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
+  body {
+    @apply bg-brand-bg text-brand-dark font-sans antialiased;
+  }
+  
+  /* Custom Scrollbar for Windows consistency */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-brand-bg;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-brand-border rounded-full hover:bg-brand-muted/30 transition-colors;
+  }
+}
+
+.card-shadow {
+  box-shadow: 0 4px 20px -2px rgba(27, 48, 34, 0.05);
+}
+
+.app-container {
+  @apply max-w-md mx-auto min-h-screen relative shadow-2xl shadow-brand-dark/10 overflow-hidden bg-white;
+}
+
+.input-field {
+  @apply w-full px-4 py-4 rounded-2xl bg-brand-surface border-2 border-brand-border focus:outline-brand-primary text-lg font-medium transition-all;
+}
+

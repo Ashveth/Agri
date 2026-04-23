@@ -1,0 +1,50 @@
+{
+  "entities": {
+    "Farmer": {
+      "title": "Farmer",
+      "description": "Information about a farmer using the advisor portal.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "phoneNumber": { "type": "string", "description": "Phone number of the farmer" },
+        "name": { "type": "string", "description": "Full name of the farmer" },
+        "age": { "type": "number", "description": "Age of the farmer" },
+        "location": { "type": "string", "description": "Location/Village of the farmer" },
+        "farms": { "type": "string", "description": "Details about their farms" },
+        "profilePhoto": { "type": "string", "description": "URL to profile photo" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "phoneNumber", "name", "location"]
+    },
+    "Prediction": {
+      "title": "Prediction",
+      "description": "Market prediction generated for a farmer.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "product": { "type": "string" },
+        "location": { "type": "string" },
+        "date": { "type": "string" },
+        "demand": { "type": "string", "enum": ["High", "Medium", "Low"] },
+        "price": { "type": "number" },
+        "bestLocation": { "type": "string" },
+        "bestTime": { "type": "string" },
+        "trend": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "product", "location", "demand", "price"]
+    }
+  },
+  "firestore": {
+    "/farmers/{farmerId}": {
+      "schema": "Farmer",
+      "description": "Collection of farmers registered in the system."
+    },
+    "/predictions/{predictionId}": {
+      "schema": "Prediction",
+      "description": "Historical market predictions."
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "AgriSmart AI",
+  "description": "An AI-powered agriculture assistant for demand prediction and market trends.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": []
+}
