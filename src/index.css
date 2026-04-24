@@ -4,14 +4,15 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   
-  --color-brand-bg: #F4F7F2;
-  --color-brand-primary: #2E7D32;
-  --color-brand-dark: #1B3022;
-  --color-brand-muted: #5C715E;
-  --color-brand-border: #E0E7DE;
-  --color-brand-surface: #F9FBF9;
-  --color-brand-highlight: #E8F5E9;
-  --color-brand-highlight-border: #C8E6C9;
+  --color-brand-bg: #F8FAF7;
+  --color-brand-primary: #166534;
+  --color-brand-dark: #064E3B;
+  --color-brand-muted: #334155;
+  --color-brand-border: #94A3B8;
+  --color-brand-surface: #FFFFFF;
+  --color-brand-highlight: #DCFCE7;
+  --color-brand-highlight-border: #BBF7D0;
+  --color-brand-gold: #D97706;
 }
 
 @layer base {
@@ -43,6 +44,5 @@
 }
 
 .input-field {
-  @apply w-full px-4 py-4 rounded-2xl bg-brand-surface border-2 border-brand-border focus:outline-brand-primary text-lg font-medium transition-all;
+  @apply w-full px-4 py-4 rounded-2xl bg-white border-2 border-brand-border focus:outline-none focus:border-brand-primary text-lg font-bold text-brand-dark transition-colors;
 }
-

@@ -2,12 +2,14 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default deny all
+    // 0. Global Safety Net - Default deny all
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Global helpers
+    // ---------------------------------------------------------
+    // Phase 3: Primitive Definitions (Helpers)
+    // ---------------------------------------------------------
     function isSignedIn() {
       return request.auth != null;
     }
@@ -20,57 +22,112 @@ service cloud.firestore {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    // Farmer Profile Rules
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // ---------------------------------------------------------
+    // Farmer Profiles
+    // ---------------------------------------------------------
     match /farmers/{farmerId} {
       function isValidFarmer(data) {
-        return data.size() >= 4 && data.size() <= 10
-          && data.uid == request.auth.uid
+        return data.uid == request.auth.uid
           && data.phoneNumber is string && data.phoneNumber.size() <= 20
           && data.name is string && data.name.size() > 0 && data.name.size() <= 100
           && data.location is string && data.location.size() > 0 && data.location.size() <= 200
-          && (!('age' in data) || (data.age is number && data.age >= 0 && data.age <= 150))
+          && (!('age' in data) || data.age == null || (data.age is number && data.age >= 0 && data.age <= 150))
           && (!('farms' in data) || (data.farms is string && data.farms.size() <= 1000))
-          && (!('profilePhoto' in data) || (data.profilePhoto is string && data.profilePhoto.size() <= 1000));
+          && (!('profilePhoto' in data) || (data.profilePhoto is string && data.profilePhoto.size() <= 1000))
+          && (!('isProSubscriber' in data) || data.isProSubscriber is bool)
+          && (!('updatedAt' in data) || data.updatedAt == request.time);
       }
 
-      allow get: if isOwner(farmerId);
-      allow list: if false; // Farmers shouldn't list each other by default
+      allow get: if isOwner(farmerId) && isValidId(farmerId);
       
-      allow create: if isOwner(farmerId) 
-        && isValidFarmer(request.resource.data)
-        && request.resource.data.createdAt == request.time;
+      allow create: if isOwner(farmerId) && isValidId(farmerId)
+        && isValidFarmer(incoming())
+        && incoming().createdAt == request.time;
         
-      allow update: if isOwner(farmerId)
-        && isValidFarmer(request.resource.data)
-        && request.resource.data.uid == resource.data.uid // Immutable
-        && request.resource.data.phoneNumber == resource.data.phoneNumber // Immutable
-        && request.resource.data.updatedAt == request.time;
+      allow update: if isOwner(farmerId) && isValidId(farmerId)
+        && isValidFarmer(incoming())
+        && incoming().uid == existing().uid
+        && incoming().phoneNumber == existing().phoneNumber
+        && incoming().createdAt == existing().createdAt
+        && (
+          // Action: Edit Profile
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'age', 'location', 'farms', 'profilePhoto', 'updatedAt']) ||
+          // Action: Subscribe
+          incoming().diff(existing()).affectedKeys().hasOnly(['isProSubscriber', 'updatedAt'])
+        );
 
-      allow delete: if false; // Farmers can't delete their own accounts via client
+      allow delete: if false;
     }
 
-    // Prediction Rules
+    // ---------------------------------------------------------
+    // Predictions (Insights)
+    // ---------------------------------------------------------
     match /predictions/{predictionId} {
       function isValidPrediction(data) {
         return data.userId == request.auth.uid
           && data.product is string && data.product.size() <= 100
           && data.location is string && data.location.size() <= 200
-          && data.demand in ['High', 'Medium', 'Low', 'Stable']
+          && data.demand in ['High', 'Medium', 'Low']
           && data.price is number
-          && data.bestLocation is string && data.bestLocation.size() <= 200
-          && data.bestTime is string && data.bestTime.size() <= 200
-          && data.trend is string && data.trend.size() <= 200
-          && data.date is string && data.date.size() <= 100
-          && data.id == predictionId;
+          && (!('bestLocation' in data) || (data.bestLocation is string && data.bestLocation.size() <= 200))
+          && (!('bestTime' in data) || (data.bestTime is string && data.bestTime.size() <= 200))
+          && (!('trend' in data) || (data.trend is string && data.trend.size() <= 200))
+          && (!('id' in data) || (data.id is string && data.id.size() <= 128));
       }
 
-      allow get, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Explicitly separate get and list to ensure list checks the data condition
+      allow get: if isSignedIn() && isValidId(predictionId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       
-      allow create: if isSignedIn() 
-        && isValidPrediction(request.resource.data)
-        && request.resource.data.createdAt == request.time;
+      allow create: if isSignedIn() && isValidId(predictionId)
+        && isValidPrediction(incoming())
+        && (
+          (!('createdAt' in incoming()) || (incoming().createdAt == request.time || incoming().createdAt is string))
+        );
         
-      allow update, delete: if false; // Predictions are immutable records for farmers
+      allow update: if false;
+      allow delete: if isSignedIn() && isValidId(predictionId) && existing().userId == request.auth.uid;
+    }
+
+    // ---------------------------------------------------------
+    // Farm Tasks
+    // ---------------------------------------------------------
+    match /tasks/{taskId} {
+      function isValidTask(data) {
+        return data.userId == request.auth.uid
+          && data.title is string && data.title.size() > 0 && data.title.size() <= 200
+          && data.type in ['Planting', 'Irrigation', 'Harvesting', 'Fertilizing', 'Other']
+          && data.dueDate is string && data.dueDate.size() <= 100
+          && data.status in ['Pending', 'Completed']
+          && (!('description' in data) || (data.description is string && data.description.size() <= 1000));
+      }
+
+      allow get: if isSignedIn() && isValidId(taskId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() && isValidId(taskId)
+        && isValidTask(incoming());
+        
+      allow update: if isSignedIn() && isValidId(taskId)
+        && existing().userId == request.auth.uid
+        && (
+          // Action: Toggle Status
+          incoming().diff(existing()).affectedKeys().hasOnly(['status']) ||
+          // Action: Edit Task
+          incoming().diff(existing()).affectedKeys().hasOnly(['title', 'type', 'dueDate', 'description'])
+        )
+        && isValidTask(incoming())
+        && incoming().userId == existing().userId;
+
+      allow delete: if isSignedIn() && isValidId(taskId) && existing().userId == request.auth.uid;
     }
   }
 }

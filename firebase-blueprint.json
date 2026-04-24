@@ -32,9 +32,39 @@
         "bestLocation": { "type": "string" },
         "bestTime": { "type": "string" },
         "trend": { "type": "string" },
+        "comparisons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "city": { "type": "string" },
+              "price": { "type": "number" },
+              "demand": { "type": "string" },
+              "distance": { "type": "string" },
+              "isBest": { "type": "boolean" },
+              "reason": { "type": "string" }
+            }
+          }
+        },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "product", "location", "demand", "price"]
+    },
+    "FarmTask": {
+      "title": "Farm Task",
+      "description": "Daily/Weekly farming activities.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["Planting", "Irrigation", "Harvesting", "Fertilizing", "Other"] },
+        "dueDate": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["Pending", "Completed"] },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "type", "dueDate", "status"]
     }
   },
   "firestore": {
@@ -45,6 +75,10 @@
     "/predictions/{predictionId}": {
       "schema": "Prediction",
       "description": "Historical market predictions."
+    },
+    "/tasks/{taskId}": {
+      "schema": "FarmTask",
+      "description": "Farming activities and tasks."
     }
   }
 }

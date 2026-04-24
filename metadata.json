@@ -1,6 +1,6 @@
 {
-  "name": "AgriSmart AI",
-  "description": "An AI-powered agriculture assistant for demand prediction and market trends.",
+  "name": "KisanVikas",
+  "description": "Smart farming and market insights for the modern Indian farmer.",
   "requestFramePermissions": [
     "geolocation"
   ],
