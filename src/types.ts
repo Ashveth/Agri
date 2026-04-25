@@ -3,11 +3,86 @@ export type Screen =
   | 'otp'
   | 'profile'
   | 'dashboard'
+  | 'realtime_dashboard'
   | 'input'
   | 'loading'
   | 'result'
   | 'map'
-  | 'tasks';
+  | 'tasks'
+  | 'inventory'
+  | 'tracking'
+  | 'optimization'
+  | 'logistics'
+  | 'delivery_prediction'
+  | 'spoilage_prediction'
+  | 'route_optimization'
+  | 'supply_demand_matching'
+  | 'load_optimization';
+
+export interface TransportProvider {
+  id: string;
+  name: string;
+  vehicleType: string;
+  capacity: string;
+  distance: string;
+  estimatedCost: number;
+  availability: 'Available' | 'Busy';
+  rating: number;
+  phone: string;
+  icon: string;
+}
+
+export interface Truck {
+  id: string;
+  type: string;
+  capacity: number; // in kg
+  icon: string;
+}
+
+export interface LoadItem {
+  id: string;
+  name: string;
+  quantity: number; // in kg
+}
+
+export interface OptimizationResult {
+  loadPlan: string;
+  usedCapacityPercent: number;
+  remainingSpace: string;
+  additionalSuggestion: string;
+  numberOfTrips: number;
+  costEfficiency: string;
+}
+
+export interface TrackingStage {
+  id: string;
+  name: 'Farm' | 'Transport' | 'Market';
+  status: 'Completed' | 'In Progress' | 'Pending';
+  location: string;
+  timestamp: string;
+  description: string;
+}
+
+export interface SupplyChainTrack {
+  id: string;
+  productId: string;
+  productName: string;
+  batchId: string;
+  estimatedDelivery: string;
+  currentLocation: string;
+  stages: TrackingStage[];
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  availableStock: number;
+  soldStock: number;
+  remainingStock: number;
+  threshold: number;
+  unit: string;
+  updatedAt: string;
+}
 
 export interface Farmer {
   uid: string;
