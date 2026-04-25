@@ -549,11 +549,6 @@ export default function App() {
     setIsChatLoading(true);
 
     try {
-      // Build a basic context string from history if available
-      const historyContext = history.length > 0 
-        ? `The user's recent predictions include: ${history.slice(0, 3).map(p => `${p.product} in ${p.location} (Price: ₹${p.price})`).join(', ')}.`
-        : '';
-        
       const systemPrompt = `You are a helpful, professional agricultural advisor named "KisanVikas AI".
       User Name: ${currentFarmer?.name || 'Farmer'}.
       Location: ${currentFarmer?.location || 'Unknown'}.
