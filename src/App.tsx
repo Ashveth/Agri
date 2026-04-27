@@ -84,6 +84,8 @@ import {
   AlertTriangle,
   Truck,
   Store,
+  Package,
+  Activity,
   History,
   Leaf,
   Settings,
@@ -112,7 +114,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import Markdown from 'react-markdown';
-import { Screen, Prediction, Farmer, FarmTask, InventoryItem, SupplyChainTrack, Truck as TruckType, LoadItem, OptimizationResult, TransportProvider, DeliveryMonitor, WeatherData } from './types.ts';
+import { Screen, Prediction, Farmer, FarmTask, InventoryItem, SupplyChainTrack, Truck as TruckType, LoadItem, OptimizationResult, TransportProvider, DeliveryMonitor, WeatherData, PipelineResult } from './types.ts';
 import { GoogleGenAI, Type } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
@@ -273,45 +275,341 @@ const DeliveryMap = ({ monitor, onClose }: { monitor: DeliveryMonitor, onClose: 
   );
 };
 
-const Logo = ({ className = "w-8 h-8" }: { className?: string }) => {
+const Logo = ({ className = "w-8 h-8", light = false }: { className?: string, light?: boolean }) => {
+  const isLarge = className.includes('w-24');
+  const isMedium = className.includes('w-16');
+  
   return (
-    <div className="flex items-center group transition-all duration-300">
-      <div className="relative">
-        <div className={`w-8 h-8 bg-brand-primary/10 border border-brand-primary/20 rounded-lg flex items-center justify-center shadow-sm group-hover:rotate-6 transition-transform text-brand-primary`}>
-          <Sprout size={18} />
+    <div className={`flex items-center group transition-all duration-300`}>
+      <div className="relative flex-shrink-0">
+        <div className={`${className} ${light ? 'bg-white/20 border-white/30 backdrop-blur-md text-white' : 'bg-brand-primary/10 border-brand-primary/20 text-brand-primary'} rounded-lg flex items-center justify-center shadow-sm group-hover:rotate-6 transition-transform overflow-hidden`}>
+          <Sprout size={isLarge ? 32 : isMedium ? 24 : 18} />
         </div>
-        <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-brand-gold rounded-full border-2 border-white flex items-center justify-center">
-          <div className="w-1 h-1 bg-white rounded-full animate-pulse" />
-        </div>
+        {!light && (
+          <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-brand-gold rounded-full border-2 border-white flex items-center justify-center">
+            <div className="w-1 h-1 bg-white rounded-full animate-pulse" />
+          </div>
+        )}
       </div>
       <div className="ml-3 flex flex-col leading-none">
-        <span className="text-xl font-black text-brand-dark tracking-tighter uppercase whitespace-nowrap">
-          KISAN<span className="text-brand-primary">VIKAS</span>
+        <span className={`${isLarge ? 'text-2xl' : 'text-xl'} font-black tracking-tighter uppercase whitespace-nowrap ${light ? 'text-white' : 'text-brand-dark'}`}>
+          KISAN<span className={light ? 'text-white/80' : 'text-brand-primary'}>VIKAS</span>
         </span>
-        <span className="text-[7px] font-black uppercase tracking-[0.1em] text-brand-muted mt-0.5 whitespace-nowrap">Smart Farm Intelligence</span>
+        <span className={`${isLarge ? 'text-[8px]' : 'text-[7px]'} font-black uppercase tracking-[0.1em] mt-0.5 whitespace-nowrap ${light ? 'text-white/70' : 'text-brand-muted'}`}>Smart Farm Intelligence</span>
       </div>
     </div>
   );
+};
+const LANGUAGES = [
+  { id: 'English', name: 'English', native: 'English' },
+  { id: 'Hindi', name: 'हिन्दी', native: 'Hindi' },
+  { id: 'Marathi', name: 'मराठी', native: 'Marathi' },
+  { id: 'Tamil', name: 'தமிழ்', native: 'Tamil' },
+  { id: 'Telugu', name: 'తెలుగు', native: 'Telugu' },
+  { id: 'Kannada', name: 'ಕನ್ನಡ', native: 'Kannada' },
+  { id: 'Bengali', name: 'বাংলা', native: 'Bengali' },
+  { id: 'Gujarati', name: 'ગુજરાતી', native: 'Gujarati' },
+  { id: 'Punjabi', name: 'ਪੰਜਾਬੀ', native: 'Punjabi' },
+] as const;
+
+type AppLanguage = typeof LANGUAGES[number]['id'];
+
+const UI_TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
+  English: {
+    dashboard: 'Dashboard',
+    cropAdvisor: 'Crop Advisor',
+    market: 'Market',
+    inventory: 'Inventory',
+    aiAssistant: 'AI Assistant',
+    profile: 'Profile',
+    logout: 'Logout',
+    notifications: 'Notifications',
+    quickActions: 'Quick Actions',
+    deliveryMonitor: 'Delivery Monitor',
+    traceability: 'Traceability',
+    loadOptimizer: 'Load Optimizer',
+    marketPrices: 'Market Prices',
+    partnerMatch: 'Partner Match',
+    yieldPredictor: 'Yield Predictor',
+    scanPlant: 'Scan Plant',
+    farmDiary: 'Farm Diary',
+    weatherForecast: 'Weather Forecast',
+    realTimeDashboard: 'Real-Time Dashboard',
+    reactiveIntelligence: 'Reactive Intelligence',
+    welcomeBack: 'Welcome back,',
+    activeShipments: 'Active Shipments',
+    smartChain: 'Smart Chain',
+    controller: 'Controller',
+    supplyChainInterconnected: 'All modules are interconnected. Changing any value below will instantly re-optimize your entire supply chain network.',
+    rainProbability: 'Rain Prob.',
+    lowRain: 'Low wind and no rain predicted. Good time for foliar application or pest control.',
+    highRain: 'High rain probability detected. Natural watering will be sufficient for most crops today.',
+    aiAdvice: 'Weather patterns affect fertilizer runoff. Apply nutrients at least 6 hours before rain.'
+  },
+  Hindi: {
+    dashboard: 'डैशबोर्ड',
+    cropAdvisor: 'फसल सलाहकार',
+    market: 'बाज़ार',
+    inventory: 'इन्वेंटरी',
+    aiAssistant: 'एआई सहायक',
+    profile: 'प्रोफ़ाइल',
+    logout: 'लॉग आउट',
+    notifications: 'सूचनाएं',
+    quickActions: 'त्वरित कार्रवाई',
+    deliveryMonitor: 'डिलिवरी मॉनिटर',
+    traceability: 'ट्रैसेबिलिटी',
+    loadOptimizer: 'लोड ऑप्टिमाइज़र',
+    marketPrices: 'बाजार भाव',
+    partnerMatch: 'पार्टनर मैच',
+    yieldPredictor: 'पैदावार भविष्यवक्ता',
+    scanPlant: 'पौधा स्कैन करें',
+    farmDiary: 'फार्म डायरी',
+    weatherForecast: 'मौसम का पूर्वानुमान',
+    realTimeDashboard: 'रियल-टाइम डैशबोर्ड',
+    reactiveIntelligence: 'रिएक्टिव इंटेलिजेंस',
+    welcomeBack: 'आपका स्वागत है,',
+    activeShipments: 'सक्रिय शिपमेंट',
+    smartChain: 'स्मार्ट चेन',
+    controller: 'कंट्रोलर',
+    supplyChainInterconnected: 'सभी मॉड्यूल परस्पर जुड़े हुए हैं। नीचे दिए गए किसी भी मूल्य को बदलने से आपका संपूर्ण आपूर्ति श्रृंखला नेटवर्क तुरंत पुन: अनुकूलित हो जाएगा।',
+    rainProbability: 'बारिश की संभावना',
+    lowRain: 'कम हवा और बारिश की संभावना नहीं है। पत्ते लगाने या कीट नियंत्रण के लिए अच्छा समय है।',
+    highRain: 'बारिश की उच्च संभावना का पता चला। आज अधिकांश फसलों के लिए प्राकृतिक जल पर्याप्त होगा।',
+    aiAdvice: 'मौसम का पैटर्न उर्वरक के बहाव को प्रभावित करता है। बारिश से कम से कम 6 घंटे पहले पोषक तत्व डालें।'
+  },
+  Marathi: {
+    dashboard: 'डॅशबोर्ड',
+    cropAdvisor: 'पीक सल्लागार',
+    market: 'बाजार',
+    inventory: 'इन्व्हेंटरी',
+    aiAssistant: 'एआय सहाय्यक',
+    profile: 'प्रोफाइल',
+    logout: 'लॉग आउट',
+    notifications: 'सूचना',
+    quickActions: 'त्वरित कृती',
+    deliveryMonitor: 'डिलिव्हरी मॉनिटर',
+    traceability: 'ट्रेसिबिलिटी',
+    loadOptimizer: 'लोड ऑप्टिमाइझर',
+    marketPrices: 'बाजार भाव',
+    partnerMatch: 'भागीदार शोध',
+    yieldPredictor: 'उत्पन्न अंदाज',
+    scanPlant: 'रोप स्कॅन करा',
+    farmDiary: 'शेती डायरी',
+    weatherForecast: 'हवामान अंदाज',
+    realTimeDashboard: 'रिअल-टाइम डॅशबोर्ड',
+    reactiveIntelligence: 'रिअँक्टिव्ह इंटेलिजन्स',
+    welcomeBack: 'पुनश्च स्वागत,',
+    activeShipments: 'सक्रिय शिपमेंट',
+    smartChain: 'स्मार्ट चेन',
+    controller: 'कंट्रोलर',
+    supplyChainInterconnected: 'सर्व मॉड्युल्स एकमेकांशी जोडलेले आहेत. खालील कोणतेही मूल्य बदलल्यास तुमच्या संपूर्ण पुरवठा साखळी नेटवर्कचे त्वरित पुन:ऑप्टिमायझेशन होईल.',
+    rainProbability: 'पावसाची शक्यता',
+    lowRain: 'कमी वारा आणि पावसाचा अंदाज नाही. खते किंवा कीटक नियंत्रणासाठी चांगली वेळ आहे.',
+    highRain: 'पावसाची दाट शक्यता. आज बहुतेक पिकांसाठी नैसर्गिक पाणी पिणे पुरेसे असेल.',
+    aiAdvice: 'हवामानाचा कल खतांच्या वापरावर परिणाम करतो. पावसाच्या किमान ६ तास आधी खते द्या.'
+  },
+  Tamil: {
+    dashboard: 'டாஷ்போர்டு',
+    cropAdvisor: 'பயிர் ஆலோசகர்',
+    market: 'சந்தை',
+    inventory: 'சரக்கு',
+    aiAssistant: 'AI உதவியாளர்',
+    profile: 'சுயவிவரம்',
+    logout: 'வெளியேறு',
+    notifications: 'அறிவிப்புகள்',
+    quickActions: 'விரைவான நடவடிக்கைகள்',
+    deliveryMonitor: 'டெலிவரி மானிட்டர்',
+    traceability: 'கண்டுபிடிப்புத் திறன்',
+    loadOptimizer: 'சுமை உகப்பாக்கி',
+    marketPrices: 'சந்தை விலைகள்',
+    partnerMatch: 'கூட்டாளர் பொருத்தம்',
+    yieldPredictor: 'மகசூல் கணிப்பான்',
+    scanPlant: 'செடியை ஸ்கேன் செய்க',
+    farmDiary: 'பண்ணை நாட்குறிப்பு',
+    weatherForecast: 'வானிலை முன்னறிவிப்பு',
+    realTimeDashboard: 'நிகழ்நேர டாஷ்போர்டு',
+    reactiveIntelligence: 'ரியாக்டிவ் இன்டலிஜென்ஸ்',
+    welcomeBack: 'மீண்டும் வருக,',
+    activeShipments: 'செயலில் உள்ள ஏற்றுமதிகள்',
+    smartChain: 'ஸ்மார்ட் செயின்',
+    controller: 'கண்ட்ரோலர்',
+    supplyChainInterconnected: 'அனைத்து தொகுதிகளும் ஒன்றோடொன்று இணைக்கப்பட்டுள்ளன. கீழே உள்ள எந்த மதிப்பையும் மாற்றினால், உங்கள் முழு விநியோகச் சங்கிலி நெட்வொர்க்கும் உடனடியாக மீண்டும் மேம்படுத்தப்படும்.',
+    rainProbability: 'மழை வாய்ப்பு',
+    lowRain: 'குறைந்த காற்று மற்றும் மழை இல்லை. பூச்சி கட்டுப்பாடு செய்ய இது நல்ல நேரம்.',
+    highRain: 'அதிக மழை பெய்ய வாய்ப்புள்ளது. இன்று பெரும்பாலான பயிர்களுக்கு இயற்கை நீர்ப்பாசனமே போதுமானது.',
+    aiAdvice: 'வானிலை முறைகள் உரங்களின் செயல்திறனைப் பாதிக்கும். மழைக்கு குறைந்தது 6 மணி நேரத்திற்கு முன்பே உரமிடவும்.'
+  },
+  Telugu: {
+    dashboard: 'డాష్‌బోర్డ్',
+    cropAdvisor: 'పంట సలహాదారు',
+    market: 'మార్కెట్',
+    inventory: 'ఇన్వెంటరీ',
+    aiAssistant: 'AI సహాయకుడు',
+    profile: 'ప్రొఫైల్',
+    logout: 'లాగ్ అవుట్',
+    notifications: 'నోటిఫికేషన్లు',
+    quickActions: 'శీఘ్ర చర్యలు',
+    deliveryMonitor: 'డెలివరీ మానిటర్',
+    traceability: 'ట్రేసిబిలిటీ',
+    loadOptimizer: 'లోడ్ ఆప్టిమైజర్',
+    marketPrices: 'మార్కెట్ ధరలు',
+    partnerMatch: 'భాగస్వామి మ్యాచ్',
+    yieldPredictor: 'దిగుబడి అంచనా',
+    scanPlant: 'మొక్కను స్కాన్ చేయండి',
+    farmDiary: 'ఫార్మ్ డైరీ',
+    weatherForecast: 'వాతావరణ సూచన',
+    realTimeDashboard: 'రియల్ టైమ్ డాష్‌బోర్డ్',
+    reactiveIntelligence: 'రియాక్టివ్ ఇంటెలిజెన్స్',
+    welcomeBack: 'తిరిగి స్వాగతం,',
+    activeShipments: 'క్రియాశీల సరుకులు',
+    smartChain: 'స్మార్ట్ చైన్',
+    controller: 'కంట్రోలర్',
+    supplyChainInterconnected: 'అన్ని మాడ్యూల్స్ పరస్పరం అనుసంధానించబడి ఉన్నాయి. దిగువన ఉన్న ఏ విలువనైనా మార్చడం వల్ల మీ మొత్తం సరఫరా గొలుసు నెట్‌వర్క్ తక్షణమే మళ్లీ ఆప్టిమైజ్ చేయబడుతుంది.',
+    rainProbability: 'వర్షం శాతం',
+    lowRain: 'తక్కువ గాలి మరియు వర్షం సూచన లేదు. తెగుళ్ల నివారణకు ఇది మంచి సమయం.',
+    highRain: 'అధిక వర్షపాతం వచ్చే అవకాశం ఉంది. నేడు చాలా పంటలకు సహజ నీరు సరిపోతుంది.',
+    aiAdvice: 'వాతావరణ పరిస్థితులు ఎరువుల వాడకాన్ని ప్రభావితం చేస్తాయి. వర్షానికి కనీసం 6 గంటల ముందు ఎరువులు వేయండి.'
+  },
+  Kannada: {
+    dashboard: 'ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',
+    cropAdvisor: 'ಬೆಳೆ ಸಲಹೆಗಾರ',
+    market: 'ಮಾರುಕಟ್ಟೆ',
+    inventory: 'ಇನ್ವೆಂಟರಿ',
+    aiAssistant: 'AI ಸಹಾಯಕ',
+    profile: 'ಪ್ರೊಫೈಲ್',
+    logout: 'ಲೋಗ್ ಔಟ್',
+    notifications: 'ಅಧಿಸೂಚನೆಗಳು',
+    quickActions: 'ತ್ವರಿತ ಕ್ರಮಗಳು',
+    deliveryMonitor: 'ಡೆಲಿವರಿ ಮಾನಿಟರ್',
+    traceability: 'ಟ್ರೇಸಿಬಿಲಿಟಿ',
+    loadOptimizer: 'ಲೋಡ್ ಆಪ್ಟಿಮೈಜರ್',
+    marketPrices: 'ಮಾರುಕಟ್ಟೆ ಬೆಲೆಗಳು',
+    partnerMatch: 'ಪಾಲುದಾರ ಹೊಂದಾಣಿಕೆ',
+    yieldPredictor: 'ಇಳುವರಿ ಭವಿಷ್ಯ',
+    scanPlant: 'ಸಸಿಯನ್ನು ಸ್ಕ್ಯಾನ್ ಮಾಡಿ',
+    farmDiary: 'ಫಾರ್ಮ್ ಡೈರಿ',
+    weatherForecast: 'ಹವಾಮಾನ ಮುನ್ಸೂಚನೆ',
+    realTimeDashboard: 'ರಿಯಲ್-ಟೈಮ್ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',
+    reactiveIntelligence: 'ರಿಯಾಕ್ಟಿವ್ ಇಂಟೆಲಿಜೆನ್ಸ್',
+    welcomeBack: 'ಮತ್ತೆ ಸ್ವಾಗತ,',
+    activeShipments: 'ಸಕ್ರಿಯ ಸಾಗಣೆಗಳು',
+    smartChain: 'ಸ್ಮಾರ್ಟ್ ಚೈನ್',
+    controller: 'ಕಂಟ್ರೋಲರ್',
+    supplyChainInterconnected: 'ಎಲ್ಲಾ ಮಾಡ್ಯೂಲ್‌ಗಳು ಪರಸ್ಪರ ಸಂಪರ್ಕ ಹೊಂದಿವೆ. ಕೆಳಗಿನ ಯಾವುದೇ ಮೌಲ್ಯವನ್ನು ಬದಲಾಯಿಸುವುದು ನಿಮ್ಮ ಇಡೀ ಪೂರೈಕೆ ಸರಪಳಿ ನೆಟ್‌ವರ್ಕ್ ಅನ್ನು ತಕ್ಷಣವೇ ಮರು-ಆಪ್ಟಿಮೈಜ್ ಮಾಡುತ್ತದೆ.',
+    rainProbability: 'ಮಳೆ ಸಂಭವನೀಯತೆ',
+    lowRain: 'ಕಡಿಮೆ ಗಾಳಿ ಮತ್ತು ಮಳೆಯ ಮುನ್ಸೂಚನೆ ಇಲ್ಲ. ಕೀಟ ನಿಯಂತ್ರಣಕ್ಕೆ ಇದು ಒಳ್ಳೆಯ ಸಮಯ.',
+    highRain: 'ಹೆಚ್ಚಿನ ಮಳೆಯ ಸಾಧ್ಯತೆ ಕಂಡುಬಂದಿದೆ. ಇಂದು ಹೆಚ್ಚಿನ ಬೆಳೆಗಳಿಗೆ ನೈಸರ್ಗಿಕ ನೀರುಣಿಸುವಿಕೆ ಸಾಕಾಗುತ್ತದೆ.',
+    aiAdvice: 'ಹವಾಮಾನ ಮಾದರಿಗಳು ಗೊಬ್ಬರದ ಬಳಕೆಯ ಮೇಲೆ ಪರಿಣಾಮ ಬೀರುತ್ತವೆ. ಮಳೆ ಬರುವ ಕನಿಷ್ಠ 6 ಗಂಟೆಗಳ ಮೊದಲು ಗೊಬ್ಬರ ಹಾಕಿ.'
+  },
+  Bengali: {
+    dashboard: 'ড্যাশবোর্ড',
+    cropAdvisor: 'ফসল উপদেষ্টা',
+    market: 'বাজার',
+    inventory: 'ইনভেন্টরি',
+    aiAssistant: 'এআই সহকারী',
+    profile: 'প্রোফাইল',
+    logout: 'লগ আউট',
+    notifications: 'বিজ্ঞপ্তি',
+    quickActions: 'দ্রুত পদক্ষেপ',
+    deliveryMonitor: 'ডেলিভারি মনিটর',
+    traceability: 'ট্রেসেবিলিটি',
+    loadOptimizer: 'লোড অপ্টিমাইজার',
+    marketPrices: 'বাজারের দাম',
+    partnerMatch: 'পার্টনার ম্যাচ',
+    yieldPredictor: 'ফলন ভবিষ্যদ্বাণী',
+    scanPlant: 'গাছ স্ক্যান করুন',
+    farmDiary: 'ফার্ম ডায়েরি',
+    weatherForecast: 'আবহাওয়ার পূর্বাভাস',
+    realTimeDashboard: 'রিয়েল-টাইม ড্যাশবোর্ড',
+    reactiveIntelligence: 'রিঅ্যাক্টিভ ইন্টেলিজেন্স',
+    welcomeBack: 'স্বাগত,',
+    activeShipments: 'সক্রিয় চালান',
+    smartChain: 'স্মার্ট চেইন',
+    controller: 'কন্ট্রোলার',
+    supplyChainInterconnected: 'সব মডিউল একে অপরের সাথে সংযুক্ত। নিচের যেকোনো মান পরিবর্তন করলে তাৎক্ষণিকভাবে আপনার পুরো সাপ্লাই চেইন নেটওয়ার্ক আবার অপ্টিমাইজ হয়ে যাবে।',
+    rainProbability: 'বৃষ্টির সম্ভাবনা',
+    lowRain: 'কম বাতাস এবং বৃষ্টির পূর্বাভাস নেই। পোকামাকড় নিয়ন্ত্রণের জন্য এটি ভালো সময়।',
+    highRain: 'ভারী বৃষ্টির সম্ভাবনা রয়েছে। আজ বেশিরভাগ ফসলের জন্য প্রাকৃতিক জলই যথেষ্ট হবে।',
+    aiAdvice: 'আবহাওয়ার ধরণ সারের কার্যকারিতার ওপর প্রভাব ফেলে। বৃষ্টির অন্তত ৬ ঘণ্টা আগে সার প্রয়োগ করুন।'
+  },
+  Gujarati: {
+    dashboard: 'ડેશબોર્ડ',
+    cropAdvisor: 'પાક સલાહકાર',
+    market: 'બજાર',
+    inventory: 'ઇન્વેન્ટરી',
+    aiAssistant: 'AI મદદનીશ',
+    profile: 'પ્રોફાઇલ',
+    logout: 'લોગ આઉટ',
+    notifications: 'સૂચનાઓ',
+    quickActions: 'ઝડપી પગલાં',
+    deliveryMonitor: 'ડિલિવરી મોનિટર',
+    traceability: 'ટ્રેસેબિલિટી',
+    loadOptimizer: 'લોડ ઓપ્ટિમાઈઝર',
+    marketPrices: 'બજાર ભાવ',
+    partnerMatch: 'ભાગીદાર મેચ',
+    yieldPredictor: 'ઉત્પાદન પૂર્વધારણા',
+    scanPlant: 'પ્લાન્ટ સ્કેન કરો',
+    farmDiary: 'ફાર્મ ડાયરી',
+    weatherForecast: 'હવામાનની આગાહી',
+    realTimeDashboard: 'રિયલ-ટાઇમ ડેશબોર્ડ',
+    reactiveIntelligence: 'રિએક્ટિવ ઇન્ટેલિજન્સ',
+    welcomeBack: 'સ્વાગત છે,',
+    activeShipments: 'સક્રિય શિપમેન્ટ',
+    smartChain: 'સ્માર્ટ ચેઇન',
+    controller: 'કંટ્રોલર',
+    supplyChainInterconnected: 'બધા મોડ્યુલો એકબીજા સાથે જોડાયેલા છે. નીચેના કોઈપણ મૂલ્યને બદલવાથી તમારા આખા સપ્લાય ચેઇન નેટવર્કને તરત જ ફરી ઓપ્ટિમાઇઝ કરવામાં આવશે.',
+    rainProbability: 'વરસાદની શક્યતા',
+    lowRain: 'ઓછો પવન અને વરસાદની આગાહી નથી. જંતુ નિયંત્રણ માટે આ સારો સમય છે.',
+    highRain: 'વધારે વરસાદની શક્યતા જણાય છે. આજે મોટાભાગના પાકો માટે કુદરતી પાણી પૂરતું હશે.',
+    aiAdvice: 'હવામાન ઉર્વરકના વપરાશ પર અસર કરે છે. વરસાદના ઓછામાં ઓછા 6 કલાક પહેલા ખાતર નાખો.'
+  },
+  Punjabi: {
+    dashboard: 'ਡੈਸ਼ਬੋਰਡ',
+    cropAdvisor: 'ਫਸਲ ਸਲਾਹਕਾਰ',
+    market: 'ਮਾਰਕੀਟ',
+    inventory: 'ਇਨਵੈਂਟਰੀ',
+    aiAssistant: 'AI ਸਹਾਇਕ',
+    profile: 'ਪ੍ਰੋਫਾਈਲ',
+    logout: 'ਲੌਗ ਆਉਟ',
+    notifications: 'ਸੂਚਨਾਵਾਂ',
+    quickActions: 'ਤੁਰੰਤ ਕਾਰਵਾਈਆਂ',
+    deliveryMonitor: 'ਡਿਲੀਵਰੀ ਮਾਨੀਟਰ',
+    traceability: 'ਟਰੇਸੇਬਿਲਟੀ',
+    loadOptimizer: 'ਲੋਡ ਓਪਟੀਮਾਈਜ਼ਰ',
+    marketPrices: 'ਬਾਜ਼ਾਰ ਦੀਆਂ ਕੀਮਤਾਂ',
+    partnerMatch: 'ਪਾਰਟਨਰ ਮੈਚ',
+    yieldPredictor: 'ਝਾੜ ਦੀ ਭਵਿੱਖਬਾਣੀ',
+    scanPlant: 'ਪੌਦਾ ਸਕੈਨ ਕਰੋ',
+    farmDiary: 'ਫਾਰਮ ਡਾਇਰੀ',
+    weatherForecast: 'ਮੌਸਮ ਦੀ ਭਵਿੱਖਬਾਣੀ',
+    realTimeDashboard: 'ਰੀਅਲ-ਟਾਈਮ ਡੈਸ਼ਬੋਰਡ',
+    reactiveIntelligence: 'ਰਿਐਕਟਿਵ ਇੰਟੈਲੀਜੈਂਸ',
+    welcomeBack: 'ਜੀ ਆਇਆਂ ਨੂੰ,',
+    activeShipments: 'ਸਰਗਰਮ ਸ਼ਿਪਮੈਂਟ',
+    smartChain: 'ਸਮਾਰਟ ਚੇਨ',
+    controller: 'ਕੰਟਰੋਲਰ',
+    supplyChainInterconnected: 'ਸਾਰੇ ਮੋਡੀਊਲ ਆਪਸ ਵਿੱਚ ਜੁੜੇ ਹੋਏ ਹਨ। ਹੇਠਾਂ ਦਿੱਤੇ ਕਿਸੇ ਵੀ ਮੁੱਲ ਨੂੰ ਬਦਲਣ ਨਾਲ ਤੁਹਾਡਾ ਪੂਰਾ ਸਪਲਾਈ ਚੇਨ ਨੈੱಟ್ਵਰਕ ਤੁਰੰਤ ਮੁੜ-ਅਨੁਕੂਲ ਹੋ ਜਾਵੇਗਾ।',
+    rainProbability: 'ਮਾਨਸੂਨ ਸੰਭਾਵਨਾ',
+    lowRain: 'ਘੱਟ ਹਵਾ ਅਤੇ ਮੀਂਹ ਦੀ ਕੋਈ ਭਵਿੱਖਬਾਣੀ ਨਹੀਂ। ਕੀਟਨਾਸ਼ਕਾਂ ਦੀ ਵਰਤੋਂ ਲਈ ਵਧੀਆ ਸਮਾਂ ਹੈ।',
+    highRain: 'ਭਾਰੀ ਮੀਂਹ ਦੀ ਸੰਭਾਵਨਾ ਹੈ। ਅੱਜ ਜ਼ਿਆਦਾਤਰ ਫਸਲਾਂ ਲਈ ਕੁਦਰਤੀ ਪਾਣੀ ਕਾਫੀ ਹੋਵੇਗਾ।',
+    aiAdvice: 'ਮੌਸਮ ਖਾਦਾਂ ਦੇ ਵਹਾਅ ਨੂੰ ਪ੍ਰਭਾਵਿਤ ਕਰਦਾ ਹੈ। ਮੀਂਹ ਤੋਂ ਘੱਟੋ-ਘੱਟ 6 ਘੰਟੇ ਪਹਿਲਾਂ ਖਾਦ ਪਾਓ।'
+  }
 };
 
 const Navbar = ({ currentScreen, navigateTo, language, setLanguage }: { 
   currentScreen: Screen, 
   navigateTo: (s: Screen) => void,
-  language: 'English' | 'Hindi',
-  setLanguage: (lang: 'English' | 'Hindi') => void
+  language: AppLanguage,
+  setLanguage: (lang: AppLanguage) => void
 }) => {
-  const navItems = language === 'English' ? [
-    { label: 'Dashboard', screen: 'dashboard', icon: LayoutDashboard },
-    { label: 'Crop Advisor', screen: 'input', icon: Leaf },
-    { label: 'Market', screen: 'logistics', icon: TrendingUp },
-    { label: 'Inventory', screen: 'inventory', icon: PackageCheck },
-    { label: 'AI Assistant', screen: 'realtime_dashboard', icon: MessageSquare },
-  ] : [
-    { label: 'डैशबोर्ड', screen: 'dashboard', icon: LayoutDashboard },
-    { label: 'फसल सलाहकार', screen: 'input', icon: Leaf },
-    { label: 'बाजार', screen: 'logistics', icon: TrendingUp },
-    { label: 'इन्वेंटरी', screen: 'inventory', icon: PackageCheck },
-    { label: 'एआई सहायक', screen: 'realtime_dashboard', icon: MessageSquare },
+  const t = (key: string) => UI_TRANSLATIONS[language][key] || UI_TRANSLATIONS['English'][key] || key;
+
+  const navItems = [
+    { label: t('dashboard'), screen: 'dashboard', icon: LayoutDashboard },
+    { label: t('cropAdvisor'), screen: 'input', icon: Leaf },
+    { label: t('market'), screen: 'logistics', icon: TrendingUp },
+    { label: t('inventory'), screen: 'inventory', icon: PackageCheck },
+    { label: t('aiAssistant'), screen: 'realtime_dashboard', icon: MessageSquare },
   ];
 
   return (
@@ -343,19 +641,19 @@ const Navbar = ({ currentScreen, navigateTo, language, setLanguage }: {
               <span>{language}</span>
               <ChevronDown size={14} className="group-hover:rotate-180 transition-transform" />
             </button>
-            <div className="absolute top-full right-4 mt-0 pt-2 w-32 bg-white border border-brand-border rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[60]">
-               <button 
-                 onClick={() => setLanguage('English')}
-                 className={`w-full text-left px-4 py-3 text-sm hover:bg-brand-accent rounded-t-xl transition-colors ${language === 'English' ? 'text-brand-primary font-bold' : 'text-brand-muted'}`}
-               >
-                 English
-               </button>
-               <button 
-                 onClick={() => setLanguage('Hindi')}
-                 className={`w-full text-left px-4 py-3 text-sm hover:bg-brand-accent rounded-b-xl transition-colors ${language === 'Hindi' ? 'text-brand-primary font-bold' : 'text-brand-muted'}`}
-               >
-                 Hindi
-               </button>
+            <div className="absolute top-full right-4 mt-0 pt-2 w-48 bg-white border border-brand-border rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[60] max-h-[300px] overflow-y-auto custom-scrollbar">
+               {LANGUAGES.map((lang, idx) => (
+                 <button 
+                   key={lang.id}
+                   onClick={() => setLanguage(lang.id)}
+                   className={`w-full text-left px-4 py-3 text-sm hover:bg-brand-accent transition-colors flex items-center justify-between ${
+                     language === lang.id ? 'text-brand-primary font-bold' : 'text-brand-muted'
+                   } ${idx === 0 ? 'rounded-t-xl' : ''} ${idx === LANGUAGES.length - 1 ? 'rounded-b-xl' : ''}`}
+                 >
+                   <span>{lang.name}</span>
+                   <span className="text-[10px] opacity-50 uppercase tracking-widest">{lang.native}</span>
+                 </button>
+               ))}
             </div>
           </div>
           <button className="p-2 text-brand-muted hover:text-brand-primary transition-colors">
@@ -366,6 +664,7 @@ const Navbar = ({ currentScreen, navigateTo, language, setLanguage }: {
               {auth.currentUser?.displayName?.[0] || 'A'}
             </div>
           </button>
+
         </div>
       </div>
     </nav>
@@ -374,24 +673,19 @@ const Navbar = ({ currentScreen, navigateTo, language, setLanguage }: {
 
 const Hero = () => {
   return (
-    <div className="relative h-[480px] flex items-center overflow-hidden">
+    <div className="relative h-[320px] flex items-center overflow-hidden">
       {/* Background Image */}
       <div 
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: `url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=2000&auto=format&fit=crop')` }}
       >
-        <div className="absolute inset-0 bg-black/20 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+        <div className="absolute inset-0 bg-black/30 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
       </div>
       
-      <div className="content-width relative z-10 text-white space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/30">
-            <Leaf size={28} className="text-white" />
-          </div>
-          <h1 className="text-5xl font-black tracking-tighter">GrowMate</h1>
-        </div>
-        <div className="max-w-2xl space-y-6">
-          <h2 className="text-2xl md:text-3xl font-medium text-white/90 leading-tight">
+      <div className="content-width relative z-10 text-white space-y-4">
+        <Logo light className="w-12 h-12" />
+        <div className="max-w-2xl space-y-4">
+          <h2 className="text-2xl md:text-3xl font-medium text-white/95 leading-tight tracking-tight">
             Smart farming decisions powered by AI. Get crop recommendations, detect diseases, and track market prices.
           </h2>
         </div>
@@ -410,7 +704,8 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>(() => {
     return (localStorage.getItem('isLoggedIn') === 'true') ? 'dashboard' : 'login';
   });
-  const [language, setLanguage] = useState<'English' | 'Hindi'>('English');
+  const [language, setLanguage] = useState<AppLanguage>('English');
+  const t = (key: string) => UI_TRANSLATIONS[language]?.[key] || UI_TRANSLATIONS['English']?.[key] || key;
   const [phoneNumber, setPhoneNumber] = useState(() => localStorage.getItem('phoneNumber') || '');
   const [verificationId, setVerificationId] = useState<ConfirmationResult | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
@@ -594,6 +889,78 @@ export default function App() {
     details: string;
     altRoute?: string;
   } | null>(null);
+
+  const [globalConfig, setGlobalConfig] = useState({
+    product: '🍎 Apples',
+    quantity: 2000,
+    farmLocation: 'Shimla, HP',
+    inventoryLevel: 'Optimal',
+    timeSinceHarvest: '2 days',
+    targetMarkets: 'Delhi, Mumbai'
+  });
+
+  const [globalOptimization, setGlobalOptimization] = useState<PipelineResult | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  // Global Reactive Optimization Effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      syncGlobalSupplyChain();
+    }, 1500); // Debounce to prevent over-calling AI
+    return () => clearTimeout(timer);
+  }, [globalConfig.product, globalConfig.quantity, globalConfig.farmLocation, globalConfig.inventoryLevel, globalConfig.timeSinceHarvest, globalConfig.targetMarkets]);
+
+  const syncGlobalSupplyChain = async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    
+    try {
+      const prompt = `Act as a Global Supply Chain Architect. Interconnect these features for the current production batch:
+      - Product: ${globalConfig.product}
+      - Quantity: ${globalConfig.quantity} kg
+      - Farm Location: ${globalConfig.farmLocation}
+      - Inventory Level: ${globalConfig.inventoryLevel}
+      - Time Since Harvest: ${globalConfig.timeSinceHarvest}
+      - Target Markets: ${globalConfig.targetMarkets}
+      
+      Instructions:
+      Analyze all inputs and return a valid JSON interconnecting: Inventory Tracking, Spoilage Prediction, Market Demand, Supply-Demand Matching, Logistics, Load, Route, Delivery ETA, and Traceability.
+      The output must be reactive: if spoilage risk is high, prioritize near markets and fast transport.
+      
+      Return ONLY valid JSON strictly following the PipelineResult schema.
+      {
+        "inventory": { "stockStatus": "string", "action": "string" },
+        "spoilage": { "risk": "Low/Medium/High", "urgencyReason": "string" },
+        "demand": { "predictedPrice": number, "predictedDemand": "string", "bestMarkets": [] },
+        "marketMatch": { "selectedMarket": "string", "buyerType": "string", "matchReason": "string" },
+        "logistics": { "provider": "string", "vehicleType": "string", "cost": number },
+        "load": { "plan": "string", "efficiency": "string" },
+        "route": { "path": "string", "fastestRoute": "string", "costEffectiveRoute": "string", "distance": "string" },
+        "delivery": { "eta": "string", "reliability": "string" },
+        "traceability": { "currentStage": "Farm", "batchId": "string" }
+      }`;
+
+      const aiResponse = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+        }
+      });
+
+      const responseText = aiResponse.text?.trim() || '{}';
+      if (responseText.startsWith('{') && responseText.endsWith('}')) {
+        const result = JSON.parse(responseText) as PipelineResult;
+        setGlobalOptimization(result);
+      } else {
+        console.warn("Invalid AI JSON response format");
+      }
+    } catch (error) {
+      console.error("Global Sync Failed:", error);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const [deliveryMonitors, setDeliveryMonitors] = useState<DeliveryMonitor[]>(() => {
     const saved = localStorage.getItem('deliveryMonitors');
@@ -1300,13 +1667,23 @@ export default function App() {
     setIsChatLoading(true);
 
     try {
-      const systemPrompt = `You are a helpful, professional agricultural advisor named "KisanVikas AI".
-      User Name: ${currentFarmer?.name || 'Farmer'}.
-      Location: ${currentFarmer?.location || 'Unknown'}.
-      Current Inventory: ${inventory.map(i => `${i.name}: ${i.remainingStock}${i.unit} remaining (from ${i.availableStock}${i.unit} total), ${i.soldStock}${i.unit} sold`).join(', ')}.
-      Supply Chain Tracking: ${tracking.map(t => `${t.productName} (Batch ${t.batchId}): Currently at ${t.currentLocation}, Estimated delivery ${t.estimatedDelivery}`).join(', ')}.
-      Provide concise, practical advice for farmers. If they ask about market trends, inventory, or supply chain, use the context provided.
-      Current conversation history:
+      const systemPrompt = `You are "KisanVikas AI", a world-class agricultural and supply chain expert.
+      Your goal is to provide accurate, high-integrity advice to farmers based on their current situation.
+
+      CRITICAL IDENTITY & LANGUAGE:
+      1. User Name: ${currentFarmer?.name || 'Farmer'}.
+      2. Current Language: ${language}.
+      3. MANDATORY: You MUST respond EXCLUSIVELY in ${language}. 
+      4. If ${language} is an Indian language (like Hindi, Marathi, Tamil, etc.), use the native script and ensure the tone is professional yet culturally appropriate (respectful, clear, and colloquial where helpful).
+      5. DO NOT use English words unless they are technical agricultural terms without a direct equivalent.
+      6. If the user asks in English but ${language} is selected, translate your expertise into ${language} for the reply.
+
+      CONTEXT:
+      - Location: ${currentFarmer?.location || 'Unknown'}.
+      - Inventory: ${inventory.map(i => `${i.name}: ${i.remainingStock}${i.unit} available`).join(', ')}.
+      - Traceability: ${tracking.map(t => `${t.productName} is currently at ${t.currentLocation}`).join(', ')}.
+
+      Conversation History:
       ${chatMessages.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.text}`).join('\n')}
       Assistant:`;
 
@@ -1903,7 +2280,7 @@ export default function App() {
             <ScreenWrapper>
               <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center gap-12 pt-20">
                 <div className="flex-1 space-y-6 text-center md:text-left">
-                  <Logo className="w-24 h-24 rounded-3xl shadow-xl shadow-brand-primary/30 mx-auto md:mx-0" />
+                  <Logo className="w-16 h-16 rounded-2xl shadow-xl shadow-brand-primary/30 mx-auto md:mx-0" />
                   <h1 className="text-5xl md:text-6xl font-black text-brand-dark tracking-tighter leading-tight font-sans">
                     Smart Insights for <span className="text-brand-gold">Better Harvests.</span>
                   </h1>
@@ -1976,7 +2353,7 @@ export default function App() {
               </button>
               
               <Card className="p-10 shadow-2xl border-2 border-brand-border bg-white text-center">
-                <Logo className="w-24 h-24 rounded-[2rem] mx-auto mb-8 shadow-sm" />
+                <Logo className="w-16 h-16 rounded-2xl mx-auto mb-8 shadow-sm" />
                 <h1 className="text-3xl font-black mb-2 text-brand-dark tracking-tighter">Verify Security Code</h1>
                 <p className="text-brand-muted mb-10 font-bold text-sm">We sent a 6-digit code to <br/><span className="text-brand-primary font-black">+91 {phoneNumber.replace(/(\d{5})(\d{5})/, '$1 $2')}</span></p>
                 
@@ -2243,38 +2620,38 @@ export default function App() {
           <ScreenWrapper>
             <Hero />
             
-            <div className="content-width -mt-16 relative z-20 space-y-8">
-              {/* Alerts Section */}
-              <div className="space-y-4">
-                <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-xl flex items-center gap-4 shadow-sm">
-                  <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
-                    <AlertTriangle size={20} />
-                  </div>
-                  <p className="text-sm text-amber-900 font-medium tracking-tight">
-                    Moderate rainfall expected in next 24 hours — plan irrigation accordingly
-                  </p>
-                </div>
-                <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-xl flex items-center gap-4 shadow-sm">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
-                    <Info size={20} />
-                  </div>
-                  <p className="text-sm text-blue-900 font-medium tracking-tight">
-                    UV index may reach 9 this afternoon — avoid midday fieldwork
-                  </p>
-                </div>
-              </div>
-
+            <div className="content-width -mt-16 relative z-20 space-y-12">
               {/* Quick Actions Grid */}
               <div className="space-y-6 pt-4">
-                <h2 className="text-2xl font-bold text-brand-dark tracking-tight leading-none px-1">Quick Actions</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-                  <div className="quick-action-card group" onClick={() => navigateTo('input')}>
-                    <div className="w-16 h-16 bg-brand-primary rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
-                      <Leaf size={32} />
+                <h2 className="text-2xl font-bold text-brand-dark tracking-tight leading-none px-1">{t('quickActions')}</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="quick-action-card group" onClick={() => navigateTo('delivery_monitor')}>
+                    <div className="w-16 h-16 bg-purple-600 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                      <Navigation size={32} />
                     </div>
                     <div>
-                      <h4 className="text-xl font-bold text-gray-900">Crop Advisor</h4>
-                      <p className="text-sm text-gray-500 font-medium mt-1">AI-powered crop selection insights</p>
+                      <h4 className="text-xl font-bold text-gray-900">{t('deliveryMonitor')}</h4>
+                      <p className="text-sm text-gray-500 font-medium mt-1">Real-time ETA & traffic alerts</p>
+                    </div>
+                  </div>
+
+                  <div className="quick-action-card group" onClick={() => navigateTo('tracking')}>
+                    <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                      <Truck size={32} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900">{t('traceability')}</h4>
+                      <p className="text-sm text-gray-500 font-medium mt-1">Live batch tracking</p>
+                    </div>
+                  </div>
+
+                  <div className="quick-action-card group" onClick={() => navigateTo('load_optimization')}>
+                    <div className="w-16 h-16 bg-amber-600 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                      <Layout size={32} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900">{t('loadOptimizer')}</h4>
+                      <p className="text-sm text-gray-500 font-medium mt-1">Reduce costs & transit waste</p>
                     </div>
                   </div>
 
@@ -2283,8 +2660,38 @@ export default function App() {
                       <TrendingUp size={32} />
                     </div>
                     <div>
-                      <h4 className="text-xl font-bold text-gray-900">Market Prices</h4>
+                      <h4 className="text-xl font-bold text-gray-900">{t('marketPrices')}</h4>
                       <p className="text-sm text-gray-500 font-medium mt-1">Live Mandi rates & trends</p>
+                    </div>
+                  </div>
+
+                  <div className="quick-action-card group" onClick={() => navigateTo('logistics')}>
+                    <div className="w-16 h-16 bg-indigo-500 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                      <Handshake size={32} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900">{t('partnerMatch')}</h4>
+                      <p className="text-sm text-gray-500 font-medium mt-1">Find transport & buyers</p>
+                    </div>
+                  </div>
+
+                  <div className="quick-action-card group" onClick={() => navigateTo('inventory')}>
+                    <div className="w-16 h-16 bg-brand-primary-light rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                      <PackageCheck size={32} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900">{t('inventory')}</h4>
+                      <p className="text-sm text-gray-500 font-medium mt-1">Manage stock & supplies</p>
+                    </div>
+                  </div>
+
+                  <div className="quick-action-card group" onClick={() => navigateTo('input')}>
+                    <div className="w-16 h-16 bg-brand-primary rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                      <Leaf size={32} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900">{t('cropAdvisor')}</h4>
+                      <p className="text-sm text-gray-500 font-medium mt-1">AI-powered crop selection insights</p>
                     </div>
                   </div>
 
@@ -2293,7 +2700,7 @@ export default function App() {
                       <Zap size={32} />
                     </div>
                     <div>
-                      <h4 className="text-xl font-bold text-gray-900">Yield Predictor</h4>
+                      <h4 className="text-xl font-bold text-gray-900">{t('yieldPredictor')}</h4>
                       <p className="text-sm text-gray-500 font-medium mt-1">Predict harvests & soil health</p>
                     </div>
                   </div>
@@ -2303,7 +2710,7 @@ export default function App() {
                       <ImageIcon size={32} />
                     </div>
                     <div>
-                      <h4 className="text-xl font-bold text-gray-900">Scan Plant</h4>
+                      <h4 className="text-xl font-bold text-gray-900">{t('scanPlant')}</h4>
                       <p className="text-sm text-gray-500 font-medium mt-1">Detect diseases instantly</p>
                     </div>
                   </div>
@@ -2313,58 +2720,8 @@ export default function App() {
                       <BookOpen size={32} />
                     </div>
                     <div>
-                      <h4 className="text-xl font-bold text-gray-900">Farm Diary</h4>
+                      <h4 className="text-xl font-bold text-gray-900">{t('farmDiary')}</h4>
                       <p className="text-sm text-gray-500 font-medium mt-1">Log activities & expenses</p>
-                    </div>
-                  </div>
-
-                  <div className="quick-action-card group" onClick={() => navigateTo('inventory')}>
-                    <div className="w-16 h-16 bg-brand-primary-light rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
-                      <PackageCheck size={32} />
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-bold text-gray-900">Inventory</h4>
-                      <p className="text-sm text-gray-500 font-medium mt-1">Manage stock & supplies</p>
-                    </div>
-                  </div>
-
-                  <div className="quick-action-card group" onClick={() => navigateTo('logistics')}>
-                    <div className="w-16 h-16 bg-indigo-500 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
-                      <Handshake size={32} />
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-bold text-gray-900">Partner Match</h4>
-                      <p className="text-sm text-gray-500 font-medium mt-1">Find transport & buyers</p>
-                    </div>
-                  </div>
-
-                  <div className="quick-action-card group" onClick={() => navigateTo('tracking')}>
-                    <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
-                      <Truck size={32} />
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-bold text-gray-900">Traceability</h4>
-                      <p className="text-sm text-gray-500 font-medium mt-1">Live batch tracking</p>
-                    </div>
-                  </div>
-
-                  <div className="quick-action-card group" onClick={() => navigateTo('delivery_monitor')}>
-                    <div className="w-16 h-16 bg-purple-600 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
-                      <Navigation size={32} />
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-bold text-gray-900">Delivery Monitor</h4>
-                      <p className="text-sm text-gray-500 font-medium mt-1">Real-time ETA & traffic alerts</p>
-                    </div>
-                  </div>
-
-                  <div className="quick-action-card group" onClick={() => navigateTo('load_optimization')}>
-                    <div className="w-16 h-16 bg-amber-600 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
-                      <Layout size={32} />
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-bold text-gray-900">Load Optimizer</h4>
-                      <p className="text-sm text-gray-500 font-medium mt-1">Reduce costs & transit waste</p>
                     </div>
                   </div>
 
@@ -2373,12 +2730,212 @@ export default function App() {
                       <CloudSun size={32} />
                     </div>
                     <div>
-                      <h4 className="text-xl font-bold text-gray-900">Weather Forecast</h4>
+                      <h4 className="text-xl font-bold text-gray-900">{t('weatherForecast')}</h4>
                       <p className="text-sm text-gray-500 font-medium mt-1">Rain, temp & farm advisory</p>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Global Chain Controller */}
+              <Card className="bg-brand-dark p-8 md:p-12 relative overflow-hidden rounded-[40px] border-none shadow-2xl">
+                 <div className="absolute top-0 right-0 w-1/2 h-full opacity-10 pointer-events-none bg-[radial-gradient(circle_at_center,_var(--color-brand-primary)_0%,_transparent_70%)]" />
+                 
+                 <div className="relative z-10 flex flex-col md:flex-row items-start justify-between gap-12">
+                    <div className="space-y-6 max-w-xl">
+                       <div className="flex items-center gap-3">
+                          <div className="inline-flex items-center gap-2 bg-brand-primary/20 text-brand-primary px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-brand-primary/30">
+                             <Activity size={12} className={isSyncing ? "animate-spin" : ""} /> {isSyncing ? "Syncing Network" : "Live Network Active"}
+                          </div>
+                          {globalOptimization && (
+                            <div className="text-[10px] font-black text-green-400 uppercase tracking-widest flex items-center gap-1">
+                               <CheckCircle size={10} /> Optimized
+                            </div>
+                          )}
+                       </div>
+                       <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-[0.85]">
+                          Smart <span className="text-brand-primary">Chain</span> <br/>Controller
+                       </h2>
+                       <p className="text-gray-400 font-medium text-lg leading-relaxed">
+                          All modules are interconnected. Changing any value below will instantly re-optimize your entire supply chain network.
+                       </p>
+                    </div>
+
+                    <div className="w-full md:w-[600px] bg-white/5 backdrop-blur-xl p-8 rounded-[32px] border border-white/10 space-y-6">
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-1.5">
+                             <label className="text-[9px] font-black uppercase text-gray-500 tracking-[0.1em]">Product</label>
+                             <input 
+                               value={globalConfig.product}
+                               onChange={e => setGlobalConfig({...globalConfig, product: e.target.value})}
+                               className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-2 text-sm font-bold text-white focus:outline-none focus:border-brand-primary transition-all"
+                             />
+                          </div>
+                          <div className="space-y-1.5">
+                             <label className="text-[9px] font-black uppercase text-gray-500 tracking-[0.1em]">Quantity (kg)</label>
+                             <input 
+                               type="number"
+                               value={globalConfig.quantity}
+                               onChange={e => setGlobalConfig({...globalConfig, quantity: Number(e.target.value)})}
+                               className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-2 text-sm font-bold text-white focus:outline-none focus:border-brand-primary transition-all"
+                             />
+                          </div>
+                          <div className="space-y-1.5">
+                             <label className="text-[9px] font-black uppercase text-gray-500 tracking-[0.1em]">Origin / Farm</label>
+                             <input 
+                               value={globalConfig.farmLocation}
+                               onChange={e => setGlobalConfig({...globalConfig, farmLocation: e.target.value})}
+                               className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-2 text-sm font-bold text-white focus:outline-none focus:border-brand-primary transition-all"
+                             />
+                          </div>
+                          <div className="space-y-1.5">
+                             <label className="text-[9px] font-black uppercase text-gray-500 tracking-[0.1em]">Inventory Level</label>
+                             <input 
+                               value={globalConfig.inventoryLevel}
+                               onChange={e => setGlobalConfig({...globalConfig, inventoryLevel: e.target.value})}
+                               className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-2 text-sm font-bold text-white focus:outline-none focus:border-brand-primary transition-all"
+                             />
+                          </div>
+                          <div className="space-y-1.5">
+                             <label className="text-[9px] font-black uppercase text-gray-500 tracking-[0.1em]">Time Since Harvest</label>
+                             <input 
+                               value={globalConfig.timeSinceHarvest}
+                               onChange={e => setGlobalConfig({...globalConfig, timeSinceHarvest: e.target.value})}
+                               className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-2 text-sm font-bold text-white focus:outline-none focus:border-brand-primary transition-all"
+                             />
+                          </div>
+                          <div className="space-y-1.5">
+                             <label className="text-[9px] font-black uppercase text-gray-500 tracking-[0.1em]">Target Markets</label>
+                             <input 
+                               value={globalConfig.targetMarkets}
+                               onChange={e => setGlobalConfig({...globalConfig, targetMarkets: e.target.value})}
+                               className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-2 text-sm font-bold text-white focus:outline-none focus:border-brand-primary transition-all"
+                               placeholder="e.g. Delhi, Mumbai"
+                             />
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+
+                 {/* Miniature Pipeline Visualization */}
+                 <div className="mt-12 pt-12 border-t border-white/10 flex flex-wrap justify-between gap-6 opacity-60">
+                    {[
+                      { icon: <Package size={16}/>, label: "Inventory" },
+                      { icon: <TrendingUp size={16}/>, label: "Market" },
+                      { icon: <Handshake size={16}/>, label: "Matching" },
+                      { icon: <Truck size={16}/>, label: "Logistics" },
+                      { icon: <Layout size={16}/>, label: "Load" },
+                      { icon: <Navigation size={16}/>, label: "Route" },
+                      { icon: <Clock size={16}/>, label: "ETA" },
+                    ].map((step, idx) => (
+                      <div key={idx} className="flex items-center gap-2 group hover:opacity-100 transition-opacity">
+                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSyncing ? "bg-white/5 animate-pulse" : "bg-brand-primary/20 text-brand-primary"}`}>
+                            {step.icon}
+                         </div>
+                         <span className="text-[10px] font-black uppercase tracking-widest text-white whitespace-nowrap">{step.label}</span>
+                         {idx < 6 && <div className="hidden lg:block w-8 h-[1px] bg-white/10 ml-2" />}
+                      </div>
+                    ))}
+                 </div>
+              </Card>
+
+              {/* Reactive Intelligence Section */}
+              <div className="space-y-6 pb-20">
+                <div className="flex items-center justify-between px-1">
+                   <h2 className="text-2xl font-black text-brand-dark tracking-tight leading-none uppercase">Reactive Intelligence</h2>
+                   <div className="flex items-center gap-2 text-[10px] font-black text-brand-muted">
+                      <div className={`w-2 h-2 rounded-full ${isSyncing ? "bg-amber-500 animate-pulse" : "bg-green-500"}`} />
+                      {isSyncing ? "CALCULATING..." : "SYSTEM READY"}
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                   <Card className="p-6 space-y-4 border-2 border-brand-border hover:border-brand-primary transition-all">
+                      <div className="flex items-center gap-3">
+                         <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500">
+                            <AlertTriangle size={20} />
+                         </div>
+                         <h4 className="text-xs font-black uppercase tracking-widest text-brand-muted">Spoilage Risk</h4>
+                      </div>
+                      {globalOptimization ? (
+                        <div className="space-y-2 animate-in fade-in slide-in-from-bottom-1">
+                           <p className={`text-2xl font-black ${globalOptimization.spoilage.risk === 'High' ? 'text-red-500' : 'text-green-500'}`}>
+                              {globalOptimization.spoilage.risk}
+                           </p>
+                           <p className="text-[10px] font-bold text-brand-dark leading-tight line-clamp-2">
+                              {globalOptimization.spoilage.urgencyReason}
+                           </p>
+                        </div>
+                      ) : (
+                        <div className="h-12 bg-brand-surface animate-pulse rounded-lg" />
+                      )}
+                   </Card>
+
+                   <Card className="p-6 space-y-4 border-2 border-brand-border">
+                      <div className="flex items-center gap-3">
+                         <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
+                            <TrendingUp size={20} />
+                         </div>
+                         <h4 className="text-xs font-black uppercase tracking-widest text-brand-muted">Top Market</h4>
+                      </div>
+                      {globalOptimization ? (
+                        <div className="space-y-2 animate-in fade-in slide-in-from-bottom-1">
+                           <p className="text-2xl font-black text-brand-dark">
+                              {globalOptimization.marketMatch.selectedMarket}
+                           </p>
+                           <p className="text-[10px] font-bold text-brand-primary uppercase tracking-widest">
+                              ₹{globalOptimization.demand.predictedPrice}/kg Avg.
+                           </p>
+                        </div>
+                      ) : (
+                        <div className="h-12 bg-brand-surface animate-pulse rounded-lg" />
+                      )}
+                   </Card>
+
+                   <Card className="p-6 space-y-4 border-2 border-brand-border">
+                      <div className="flex items-center gap-3">
+                         <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-500">
+                            <Truck size={20} />
+                         </div>
+                         <h4 className="text-xs font-black uppercase tracking-widest text-brand-muted">Best Logistics</h4>
+                      </div>
+                      {globalOptimization ? (
+                        <div className="space-y-2 animate-in fade-in slide-in-from-bottom-1">
+                           <p className="text-xl font-black text-brand-dark truncate">
+                              {globalOptimization.logistics.provider}
+                           </p>
+                           <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">
+                              {globalOptimization.logistics.vehicleType} · ₹{globalOptimization.logistics.cost.toLocaleString()}
+                           </p>
+                        </div>
+                      ) : (
+                        <div className="h-12 bg-brand-surface animate-pulse rounded-lg" />
+                      )}
+                   </Card>
+
+                   <Card className="p-6 space-y-4 border-2 border-brand-primary/20 shadow-[0_0_20px_rgba(139,92,246,0.1)]">
+                      <div className="flex items-center gap-3">
+                         <div className="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center text-white">
+                            <Clock size={20} />
+                         </div>
+                         <h4 className="text-xs font-black uppercase tracking-widest text-brand-muted">Predicted ETA</h4>
+                      </div>
+                      {globalOptimization ? (
+                        <div className="space-y-2 animate-in fade-in slide-in-from-bottom-1">
+                           <p className="text-2xl font-black text-brand-primary">
+                              {globalOptimization.delivery.eta}
+                           </p>
+                           <p className="text-[10px] font-black text-green-500 uppercase tracking-widest">
+                              Reliability: {globalOptimization.delivery.reliability}
+                           </p>
+                        </div>
+                      ) : (
+                        <div className="h-12 bg-brand-surface animate-pulse rounded-lg" />
+                      )}
+                   </Card>
+                </div>
+              </div>
+
             </div>
           </ScreenWrapper>
         )}

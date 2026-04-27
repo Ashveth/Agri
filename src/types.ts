@@ -19,6 +19,7 @@ export type Screen =
   | 'supply_demand_matching'
   | 'load_optimization'
   | 'delivery_monitor'
+  | 'supply_chain_pipeline'
   | 'weather';
 
 export interface WeatherData {
@@ -160,4 +161,48 @@ export interface FarmTask {
   status: 'Pending' | 'Completed';
   description?: string;
   createdAt: string;
+}
+
+export interface PipelineResult {
+  inventory: {
+    stockStatus: string;
+    action: string;
+  };
+  spoilage: {
+    risk: 'Low' | 'Medium' | 'High';
+    urgencyReason: string;
+  };
+  demand: {
+    predictedPrice: number;
+    predictedDemand: string;
+    bestMarkets: MarketComparison[];
+  };
+  marketMatch: {
+    selectedMarket: string;
+    buyerType: string;
+    matchReason: string;
+  };
+  logistics: {
+    provider: string;
+    vehicleType: string;
+    cost: number;
+  };
+  load: {
+    plan: string;
+    efficiency: string;
+  };
+  route: {
+    path: string;
+    fastestRoute: string;
+    costEffectiveRoute: string;
+    distance: string;
+  };
+  delivery: {
+    eta: string;
+    reliability: string;
+  };
+  traceability: {
+    currentStage: 'Farm' | 'Transport' | 'Market';
+    batchId: string;
+  };
 }

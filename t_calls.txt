@@ -1,0 +1,17 @@
+603:    { label: t('dashboard'), screen: 'dashboard', icon: LayoutDashboard },
+604:    { label: t('cropAdvisor'), screen: 'input', icon: Leaf },
+605:    { label: t('market'), screen: 'logistics', icon: TrendingUp },
+606:    { label: t('inventory'), screen: 'inventory', icon: PackageCheck },
+607:    { label: t('aiAssistant'), screen: 'realtime_dashboard', icon: MessageSquare },
+2626:                <h2 className="text-2xl font-bold text-brand-dark tracking-tight leading-none px-1">{t('quickActions')}</h2>
+2633:                      <h4 className="text-xl font-bold text-gray-900">{t('deliveryMonitor')}</h4>
+2643:                      <h4 className="text-xl font-bold text-gray-900">{t('traceability')}</h4>
+2653:                      <h4 className="text-xl font-bold text-gray-900">{t('loadOptimizer')}</h4>
+2663:                      <h4 className="text-xl font-bold text-gray-900">{t('marketPrices')}</h4>
+2673:                      <h4 className="text-xl font-bold text-gray-900">{t('partnerMatch')}</h4>
+2683:                      <h4 className="text-xl font-bold text-gray-900">{t('inventory')}</h4>
+2693:                      <h4 className="text-xl font-bold text-gray-900">{t('cropAdvisor')}</h4>
+2703:                      <h4 className="text-xl font-bold text-gray-900">{t('yieldPredictor')}</h4>
+2713:                      <h4 className="text-xl font-bold text-gray-900">{t('scanPlant')}</h4>
+2723:                      <h4 className="text-xl font-bold text-gray-900">{t('farmDiary')}</h4>
+2733:                      <h4 className="text-xl font-bold text-gray-900">{t('weatherForecast')}</h4>
