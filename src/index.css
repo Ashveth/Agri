@@ -5,13 +5,14 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   
   --color-brand-bg: #F8FAF7;
-  --color-brand-primary: #166534;
-  --color-brand-dark: #064E3B;
-  --color-brand-muted: #334155;
-  --color-brand-border: #94A3B8;
+  --color-brand-primary: #1A5319;
+  --color-brand-primary-light: #22C55E;
+  --color-brand-secondary: #508D4E;
+  --color-brand-accent: #D6EFD8;
+  --color-brand-dark: #12372A;
+  --color-brand-muted: #64748b;
+  --color-brand-border: #e2e8f0;
   --color-brand-surface: #FFFFFF;
-  --color-brand-highlight: #DCFCE7;
-  --color-brand-highlight-border: #BBF7D0;
   --color-brand-gold: #D97706;
 }
 
@@ -22,27 +23,20 @@
   body {
     @apply bg-brand-bg text-brand-dark font-sans antialiased;
   }
-  
-  /* Custom Scrollbar for Windows consistency */
-  ::-webkit-scrollbar {
-    width: 8px;
-  }
-  ::-webkit-scrollbar-track {
-    @apply bg-brand-bg;
-  }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-brand-border rounded-full hover:bg-brand-muted/30 transition-colors;
-  }
-}
-
-.card-shadow {
-  box-shadow: 0 4px 20px -2px rgba(27, 48, 34, 0.05);
 }
 
 .app-container {
-  @apply max-w-md mx-auto min-h-screen relative shadow-2xl shadow-brand-dark/10 overflow-hidden bg-white;
+  @apply min-h-screen bg-brand-bg;
+}
+
+.content-width {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
 }
 
 .input-field {
-  @apply w-full px-4 py-4 rounded-2xl bg-white border-2 border-brand-border focus:outline-none focus:border-brand-primary text-lg font-bold text-brand-dark transition-colors;
+  @apply w-full px-4 py-3 rounded-xl bg-white border border-brand-border focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary text-base font-medium text-brand-dark transition-all;
+}
+
+.quick-action-card {
+  @apply bg-white rounded-2xl p-8 border border-brand-border hover:border-brand-primary hover:shadow-xl hover:shadow-brand-primary/5 transition-all cursor-pointer flex flex-col items-center text-center gap-4;
 }

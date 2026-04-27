@@ -17,7 +17,39 @@ export type Screen =
   | 'spoilage_prediction'
   | 'route_optimization'
   | 'supply_demand_matching'
-  | 'load_optimization';
+  | 'load_optimization'
+  | 'delivery_monitor'
+  | 'weather';
+
+export interface WeatherData {
+  city: string;
+  temperature: number;
+  condition: string;
+  humidity: number;
+  rainProbability: number;
+  windSpeed: number;
+  forecast: {
+    day: string;
+    low: number;
+    high: number;
+    condition: string;
+    rainProbability: number;
+  }[];
+}
+
+export interface DeliveryMonitor {
+  id: string;
+  userId: string;
+  source: string;
+  destination: string;
+  distance: number; // in km
+  trafficLevel: 'Low' | 'Medium' | 'High' | 'Severe';
+  baseEtaMinutes: number;
+  currentEtaMinutes: number;
+  status: 'In Transit' | 'Delayed' | 'Arrived';
+  lastUpdated: string;
+  alerts: string[];
+}
 
 export interface TransportProvider {
   id: string;

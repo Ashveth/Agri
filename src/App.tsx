@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { auth, db, handleFirestoreError, OperationType } from './lib/firebase.ts';
 import { 
   signInWithPhoneNumber, 
   RecaptchaVerifier, 
@@ -25,9 +26,9 @@ import {
   serverTimestamp,
   updateDoc,
   deleteDoc,
-  Timestamp 
+  Timestamp,
+  getDocFromServer
 } from 'firebase/firestore';
-import { auth, db } from './lib/firebase.ts';
 
 declare global {
   interface Window {
@@ -35,6 +36,8 @@ declare global {
   }
 }
 import { 
+  BarChart,
+  Bar,
   Pie,
   Cell,
   LineChart,
@@ -52,6 +55,7 @@ import {
   Home, 
   User, 
   ChevronLeft, 
+  ChevronDown,
   Phone, 
   TrendingUp, 
   Map as MapIcon, 
@@ -69,6 +73,7 @@ import {
   X,
   Send,
   Sparkles,
+  Bot,
   ClipboardList,
   Clock,
   Plus,
@@ -91,10 +96,23 @@ import {
   Calculator,
   Star,
   Users,
-  Handshake
+  Handshake,
+  CloudSun,
+  CloudRain,
+  Droplets,
+  Sun,
+  BookOpen,
+  ShieldAlert,
+  Landmark,
+  FileText,
+  Layout,
+  MessageSquare,
+  Bell,
+  Globe,
+  ChevronRight
 } from 'lucide-react';
 import Markdown from 'react-markdown';
-import { Screen, Prediction, Farmer, FarmTask, InventoryItem, SupplyChainTrack, Truck as TruckType, LoadItem, OptimizationResult, TransportProvider } from './types.ts';
+import { Screen, Prediction, Farmer, FarmTask, InventoryItem, SupplyChainTrack, Truck as TruckType, LoadItem, OptimizationResult, TransportProvider, DeliveryMonitor, WeatherData } from './types.ts';
 import { GoogleGenAI, Type } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
@@ -147,59 +165,252 @@ const Card = ({ children, className = "", onClick }: { children: React.ReactNode
   );
 };
 
-const ScreenWrapper = ({ children }: { children: React.ReactNode }) => (
-  <div className="min-h-screen pb-12">
-    {children}
-  </div>
-);
-
-// removed client-side Gemini initialization
-// const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-const LOGO_URL = "/logo.png";
-const FALLBACK_LOGO_URL = "https://images.unsplash.com/photo-1595841696668-3e4b706c9e0a?q=80&w=300&auto=format&fit=crop"; 
-
-const Logo = ({ className = "w-10 h-10", showText = false }: { className?: string; showText?: boolean }) => {
-  const [imgSrc, setImgSrc] = React.useState(LOGO_URL);
-  const [error, setError] = React.useState(false);
-
-  const handleError = () => {
-    if (imgSrc === LOGO_URL) {
-      setImgSrc(FALLBACK_LOGO_URL);
-    } else {
-      setError(true);
-    }
-  };
-
+const DeliveryMap = ({ monitor, onClose }: { monitor: DeliveryMonitor, onClose: () => void }) => {
+  // Use a simulated location along the route for the maker
+  // In a real app, this would be live GPS coordinates
+  const locationQuery = encodeURIComponent(`${monitor.source} to ${monitor.destination}`);
+  
   return (
-    <div className="flex items-center gap-3">
-      <div className={`${className} bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden border-2 border-brand-primary/20 bg-white`}>
-        {!error ? (
-          <img 
-            src={imgSrc} 
-            className="w-full h-full object-contain p-1" 
-            alt="KisanVikas Logo" 
-            referrerPolicy="no-referrer"
-            onError={handleError}
-          />
-        ) : (
-          <Sprout size={24} className="text-brand-primary" />
-        )}
-      </div>
-      {showText && (
-        <div className="flex flex-col">
-          <span className="text-lg font-black text-brand-dark tracking-tight leading-none">Kisan<span className="text-brand-gold">Vikas</span></span>
-          <p className="text-[9px] font-bold text-brand-primary uppercase tracking-[0.1em] mt-0.5">Advisor Portal</p>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-brand-dark/80 backdrop-blur-md"
+      />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="relative w-full max-w-5xl bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col h-[85vh]"
+      >
+        <div className="p-8 border-b border-brand-border flex items-center justify-between bg-white relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
+               <MapIcon size={24} />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-brand-dark tracking-tight">Live Tracking</h2>
+              <p className="text-sm font-bold text-brand-muted">{monitor.source} <ArrowRight size={14} className="inline mx-1" /> {monitor.destination}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+             <div className="hidden md:block text-right mr-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Current ETA</p>
+                <p className="text-xl font-black text-brand-primary">{Math.floor(monitor.currentEtaMinutes / 60)}h {monitor.currentEtaMinutes % 60}m</p>
+             </div>
+             <button onClick={onClose} className="w-12 h-12 rounded-xl bg-brand-surface border-2 border-brand-border flex items-center justify-center text-brand-muted hover:text-brand-dark transition-all">
+                <X size={24} />
+             </button>
+          </div>
         </div>
-      )}
+
+        <div className="flex-1 relative bg-brand-surface">
+           <iframe 
+             width="100%" 
+             height="100%" 
+             frameBorder="0" 
+             style={{ border: 0 }} 
+             src={`https://www.google.com/maps?q=${locationQuery}&output=embed`} 
+             allowFullScreen 
+             loading="lazy"
+           />
+           
+           {/* Custom Overlay UI for "Track" feel */}
+           <div className="absolute top-6 left-6 space-y-4 pointer-events-none">
+              <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-white/50 w-64 pointer-events-auto">
+                 <div className="flex items-center gap-2 mb-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-ping" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-brand-dark">Live Signal Active</span>
+                 </div>
+                 <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                       <span className="text-xs font-bold text-brand-muted">Speed</span>
+                       <span className="text-xs font-black text-brand-dark">42 km/h</span>
+                    </div>
+                    <div className="w-full bg-brand-border h-1.5 rounded-full overflow-hidden">
+                       <div className="bg-brand-primary h-full w-2/3" />
+                    </div>
+                    <div className="flex justify-between items-center">
+                       <span className="text-xs font-bold text-brand-muted">Progress</span>
+                       <span className="text-xs font-black text-brand-dark">112 / {monitor.distance} km</span>
+                    </div>
+                 </div>
+              </div>
+           </div>
+
+           <div className="absolute bottom-6 right-6 pointer-events-auto">
+              <button 
+                onClick={() => window.open(`https://www.google.com/maps/dir/${encodeURIComponent(monitor.source)}/${encodeURIComponent(monitor.destination)}`, '_blank')}
+                className="bg-brand-dark text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl flex items-center gap-3 hover:scale-105 active:scale-95 transition-all"
+              >
+                 <Navigation size={18} /> Open in Google Maps
+              </button>
+           </div>
+        </div>
+
+        <div className="p-6 bg-brand-surface border-t border-brand-border grid grid-cols-2 md:grid-cols-4 gap-4">
+           <div className="p-4 bg-white rounded-2xl border border-brand-border shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted mb-1">Driver</p>
+              <p className="font-black text-brand-dark">Suresh Kumar</p>
+           </div>
+           <div className="p-4 bg-white rounded-2xl border border-brand-border shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted mb-1">Vehicle</p>
+              <p className="font-black text-brand-dark">MH-15-CY-4452</p>
+           </div>
+           <div className="p-4 bg-white rounded-2xl border border-brand-border shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted mb-1">Temperature</p>
+              <p className="font-black text-brand-dark">18.5°C (Chilled)</p>
+           </div>
+           <div className="p-4 bg-white rounded-2xl border border-brand-border shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted mb-1">Status</p>
+              <p className="font-black text-green-600">On Schedule</p>
+           </div>
+        </div>
+      </motion.div>
     </div>
   );
 };
+
+const Logo = ({ className = "w-8 h-8" }: { className?: string }) => {
+  return (
+    <div className="flex items-center group transition-all duration-300">
+      <div className="relative">
+        <div className={`w-8 h-8 bg-brand-primary/10 border border-brand-primary/20 rounded-lg flex items-center justify-center shadow-sm group-hover:rotate-6 transition-transform text-brand-primary`}>
+          <Sprout size={18} />
+        </div>
+        <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-brand-gold rounded-full border-2 border-white flex items-center justify-center">
+          <div className="w-1 h-1 bg-white rounded-full animate-pulse" />
+        </div>
+      </div>
+      <div className="ml-3 flex flex-col leading-none">
+        <span className="text-xl font-black text-brand-dark tracking-tighter uppercase whitespace-nowrap">
+          KISAN<span className="text-brand-primary">VIKAS</span>
+        </span>
+        <span className="text-[7px] font-black uppercase tracking-[0.1em] text-brand-muted mt-0.5 whitespace-nowrap">Smart Farm Intelligence</span>
+      </div>
+    </div>
+  );
+};
+
+const Navbar = ({ currentScreen, navigateTo, language, setLanguage }: { 
+  currentScreen: Screen, 
+  navigateTo: (s: Screen) => void,
+  language: 'English' | 'Hindi',
+  setLanguage: (lang: 'English' | 'Hindi') => void
+}) => {
+  const navItems = language === 'English' ? [
+    { label: 'Dashboard', screen: 'dashboard', icon: LayoutDashboard },
+    { label: 'Crop Advisor', screen: 'input', icon: Leaf },
+    { label: 'Market', screen: 'logistics', icon: TrendingUp },
+    { label: 'Inventory', screen: 'inventory', icon: PackageCheck },
+    { label: 'AI Assistant', screen: 'realtime_dashboard', icon: MessageSquare },
+  ] : [
+    { label: 'डैशबोर्ड', screen: 'dashboard', icon: LayoutDashboard },
+    { label: 'फसल सलाहकार', screen: 'input', icon: Leaf },
+    { label: 'बाजार', screen: 'logistics', icon: TrendingUp },
+    { label: 'इन्वेंटरी', screen: 'inventory', icon: PackageCheck },
+    { label: 'एआई सहायक', screen: 'realtime_dashboard', icon: MessageSquare },
+  ];
+
+  return (
+    <nav className="bg-white border-b border-brand-border sticky top-0 z-50">
+      <div className="content-width flex items-center justify-between h-20">
+        <div className="flex items-center gap-8">
+          <Logo />
+          <div className="hidden lg:flex items-center gap-1">
+            {navItems.map((item) => (
+              <button
+                key={item.label}
+                onClick={() => navigateTo(item.screen as Screen)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                  currentScreen === item.screen 
+                    ? 'bg-brand-primary text-white' 
+                    : 'text-brand-muted hover:bg-brand-accent hover:text-brand-primary'
+                }`}
+              >
+                <item.icon size={18} />
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="relative group">
+            <button className="hidden sm:flex items-center gap-2 text-brand-muted hover:text-brand-primary font-medium text-sm border-r border-brand-border pr-4 transition-colors">
+              <Globe size={18} />
+              <span>{language}</span>
+              <ChevronDown size={14} className="group-hover:rotate-180 transition-transform" />
+            </button>
+            <div className="absolute top-full right-4 mt-0 pt-2 w-32 bg-white border border-brand-border rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[60]">
+               <button 
+                 onClick={() => setLanguage('English')}
+                 className={`w-full text-left px-4 py-3 text-sm hover:bg-brand-accent rounded-t-xl transition-colors ${language === 'English' ? 'text-brand-primary font-bold' : 'text-brand-muted'}`}
+               >
+                 English
+               </button>
+               <button 
+                 onClick={() => setLanguage('Hindi')}
+                 className={`w-full text-left px-4 py-3 text-sm hover:bg-brand-accent rounded-b-xl transition-colors ${language === 'Hindi' ? 'text-brand-primary font-bold' : 'text-brand-muted'}`}
+               >
+                 Hindi
+               </button>
+            </div>
+          </div>
+          <button className="p-2 text-brand-muted hover:text-brand-primary transition-colors">
+            <Bell size={22} />
+          </button>
+          <button onClick={() => navigateTo('profile')} className="p-1 rounded-full border-2 border-brand-accent">
+            <div className="w-8 h-8 rounded-full bg-brand-primary text-white flex items-center justify-center text-xs font-bold">
+              {auth.currentUser?.displayName?.[0] || 'A'}
+            </div>
+          </button>
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+const Hero = () => {
+  return (
+    <div className="relative h-[480px] flex items-center overflow-hidden">
+      {/* Background Image */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=2000&auto=format&fit=crop')` }}
+      >
+        <div className="absolute inset-0 bg-black/20 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+      </div>
+      
+      <div className="content-width relative z-10 text-white space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/30">
+            <Leaf size={28} className="text-white" />
+          </div>
+          <h1 className="text-5xl font-black tracking-tighter">GrowMate</h1>
+        </div>
+        <div className="max-w-2xl space-y-6">
+          <h2 className="text-2xl md:text-3xl font-medium text-white/90 leading-tight">
+            Smart farming decisions powered by AI. Get crop recommendations, detect diseases, and track market prices.
+          </h2>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ScreenWrapper = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
+  <div className={`min-h-screen pb-20 ${className}`}>
+    {children}
+  </div>
+);
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>(() => {
     return (localStorage.getItem('isLoggedIn') === 'true') ? 'dashboard' : 'login';
   });
+  const [language, setLanguage] = useState<'English' | 'Hindi'>('English');
   const [phoneNumber, setPhoneNumber] = useState(() => localStorage.getItem('phoneNumber') || '');
   const [verificationId, setVerificationId] = useState<ConfirmationResult | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
@@ -324,6 +535,8 @@ export default function App() {
       { id: '3', name: 'Potato', availableStock: 2000, soldStock: 400, remainingStock: 1600, threshold: 400, unit: 'kg', updatedAt: new Date().toISOString() },
     ];
   });
+  const [isCalculatingThresholds, setIsCalculatingThresholds] = useState(false);
+  const [inventorySuggestions, setInventorySuggestions] = useState<Record<string, number>>({});
 
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
   const [editingInventoryId, setEditingInventoryId] = useState<string | null>(null);
@@ -373,6 +586,263 @@ export default function App() {
   });
 
   const [activeTrackingId, setActiveTrackingId] = useState<string | null>(null);
+  const [selectedMonitorForMap, setSelectedMonitorForMap] = useState<DeliveryMonitor | null>(null);
+  const [isAiPredicting, setIsAiPredicting] = useState(false);
+  const [aiPredictionResult, setAiPredictionResult] = useState<{
+    eta: string;
+    delayRisk: string;
+    details: string;
+    altRoute?: string;
+  } | null>(null);
+
+  const [deliveryMonitors, setDeliveryMonitors] = useState<DeliveryMonitor[]>(() => {
+    const saved = localStorage.getItem('deliveryMonitors');
+    if (saved) return JSON.parse(saved);
+    return [
+      {
+        id: 'dm-1',
+        userId: 'default',
+        source: 'Nashik Mandi',
+        destination: 'Mumbai Vashi Market',
+        distance: 165,
+        trafficLevel: 'Medium',
+        baseEtaMinutes: 240,
+        currentEtaMinutes: 265,
+        status: 'In Transit',
+        lastUpdated: new Date().toISOString(),
+        alerts: ['Slight delay due to traffic at Kasara Ghat']
+      }
+    ];
+  });
+
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [isWeatherLoading, setIsWeatherLoading] = useState(false);
+
+  const fetchWeather = async (city: string = 'Nashik') => {
+    setIsWeatherLoading(true);
+    try {
+      const response = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=j1`);
+      if (!response.ok) throw new Error('Weather fetch failed');
+      const data = await response.json();
+      
+      const current = data.current_condition[0];
+      const cityName = data.nearest_area[0].areaName[0].value;
+      
+      const formattedData: WeatherData = {
+        city: cityName,
+        temperature: parseInt(current.temp_C),
+        condition: current.weatherDesc[0].value,
+        humidity: parseInt(current.humidity),
+        rainProbability: parseInt(data.weather[0].hourly[0].chanceofrain),
+        windSpeed: parseInt(current.windspeedKmph),
+        forecast: data.weather.slice(0, 5).map((w: any) => ({
+          day: new Date(w.date).toLocaleDateString([], { weekday: 'short' }),
+          low: parseInt(w.mintempC),
+          high: parseInt(w.maxtempC),
+          condition: w.hourly[Math.floor(w.hourly.length / 2)].weatherDesc[0].value,
+          rainProbability: parseInt(w.hourly[Math.floor(w.hourly.length / 2)].chanceofrain)
+        }))
+      };
+      
+      setWeatherData(formattedData);
+    } catch (error) {
+      console.error('Error fetching weather:', error);
+      // Fallback data if API fails
+      setWeatherData({
+        city: city,
+        temperature: 28,
+        condition: 'Partly Cloudy',
+        humidity: 65,
+        rainProbability: 20,
+        windSpeed: 12,
+        forecast: [
+          { day: 'Mon', low: 22, high: 32, condition: 'Sunny', rainProbability: 0 },
+          { day: 'Tue', low: 23, high: 31, condition: 'Cloudy', rainProbability: 10 },
+          { day: 'Wed', low: 21, high: 29, condition: 'Rain', rainProbability: 80 },
+          { day: 'Thu', low: 20, high: 28, condition: 'Showers', rainProbability: 60 },
+          { day: 'Fri', low: 22, high: 30, condition: 'Sunny', rainProbability: 10 },
+        ]
+      });
+    } finally {
+      setIsWeatherLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentScreen === 'weather' && !weatherData) {
+      fetchWeather(currentFarmer?.location || 'Nashik');
+    }
+  }, [currentScreen, currentFarmer]);
+
+  const [isEtaModalOpen, setIsEtaModalOpen] = useState(false);
+  const [etaForm, setEtaForm] = useState({
+    source: '',
+    destination: '',
+    distance: '',
+    trafficLevel: 'Low' as 'Low' | 'Medium' | 'High' | 'Severe'
+  });
+
+  const calculateInventoryThresholds = async () => {
+    setIsCalculatingThresholds(true);
+    // Simulate AI calculation delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    const suggestions: Record<string, number> = {};
+    inventory.forEach(item => {
+      // Suggestion logic: 
+      // If sold stock is high relative to available, increase threshold
+      // Recommendation = (Sold / Available) * Available * 0.3 + buffer
+      const soldRatio = item.soldStock / item.availableStock;
+      const baseSuggest = Math.round(item.availableStock * 0.25);
+      const demandAdjusted = Math.round(baseSuggest * (1 + soldRatio));
+      suggestions[item.id] = Math.max(50, demandAdjusted);
+    });
+    
+    setInventorySuggestions(suggestions);
+    setIsCalculatingThresholds(false);
+    
+    // Add an alert
+    setAlerts(prev => [
+      { id: Date.now().toString(), type: 'info', message: 'AI Stock optimization complete. Review suggestions in your inventory cards.', time: 'Just now' },
+      ...prev
+    ]);
+  };
+
+  const applyInventorySuggestions = () => {
+    const updatedInventory = inventory.map(item => {
+      if (inventorySuggestions[item.id]) {
+        return { ...item, threshold: inventorySuggestions[item.id], updatedAt: new Date().toISOString() };
+      }
+      return item;
+    });
+    setInventory(updatedInventory);
+    setInventorySuggestions({});
+    localStorage.setItem('inventory', JSON.stringify(updatedInventory));
+  };
+  
+  const handleGetAiPrediction = async () => {
+    if (!etaForm.source || !etaForm.destination || !etaForm.distance) return;
+    
+    setIsAiPredicting(true);
+    try {
+      const prompt = `Act as an AI logistics expert. Predict delivery arrival for a truck.
+      Source: ${etaForm.source}
+      Destination: ${etaForm.destination}
+      Distance: ${etaForm.distance} km
+      Traffic: ${etaForm.trafficLevel}
+      
+      Return JSON:
+      {
+        "eta": "X hours Y minutes",
+        "delayRisk": "Low/Medium/High",
+        "details": "Summary of risks and factors",
+        "altRoute": "Suggested alternative route if any"
+      }`;
+
+      const aiResponse = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              eta: { type: Type.STRING },
+              delayRisk: { type: Type.STRING },
+              details: { type: Type.STRING },
+              altRoute: { type: Type.STRING }
+            }
+          }
+        }
+      });
+
+      const result = JSON.parse(aiResponse.text || '{}');
+      setAiPredictionResult(result);
+    } catch (error) {
+      console.error("AI Prediction failed:", error);
+    } finally {
+      setIsAiPredicting(false);
+    }
+  };
+
+  useEffect(() => {
+    localStorage.setItem('deliveryMonitors', JSON.stringify(deliveryMonitors));
+  }, [deliveryMonitors]);
+
+  const recalculateEta = (distance: number, traffic: string) => {
+    const baseSpeed = 40; // km/h for trucks
+    let factor = 1;
+    if (traffic === 'Medium') factor = 1.3;
+    if (traffic === 'High') factor = 2.0;
+    if (traffic === 'Severe') factor = 3.5;
+    return Math.round((distance / baseSpeed) * 60 * factor);
+  };
+
+  const handleAddMonitor = (e: React.FormEvent) => {
+    e.preventDefault();
+    const distNum = parseFloat(etaForm.distance);
+    if (isNaN(distNum)) return;
+
+    const eta = recalculateEta(distNum, etaForm.trafficLevel);
+    
+    const alerts = [`Monitoring started: ${etaForm.source} → ${etaForm.destination}`];
+    if (aiPredictionResult) {
+      alerts.push(`AI Prediction: ${aiPredictionResult.eta} (Risk: ${aiPredictionResult.delayRisk})`);
+      alerts.push(`AI Analysis: ${aiPredictionResult.details}`);
+    }
+
+    const newMonitor: DeliveryMonitor = {
+      id: Math.random().toString(36).substr(2, 9),
+      userId: auth.currentUser?.uid || 'guest',
+      source: etaForm.source,
+      destination: etaForm.destination,
+      distance: distNum,
+      trafficLevel: etaForm.trafficLevel,
+      baseEtaMinutes: eta,
+      currentEtaMinutes: eta,
+      status: 'In Transit',
+      lastUpdated: new Date().toISOString(),
+      alerts
+    };
+    
+    setDeliveryMonitors([newMonitor, ...deliveryMonitors]);
+    setIsEtaModalOpen(false);
+    setEtaForm({ source: '', destination: '', distance: '', trafficLevel: 'Low' });
+  };
+
+  // Traffic Monitoring Effect
+  useEffect(() => {
+    if (currentScreen === 'delivery_monitor') {
+      const interval = setInterval(() => {
+        setDeliveryMonitors(prev => prev.map(monitor => {
+          if (monitor.status === 'In Transit') {
+            const rand = Math.random();
+            // 20% chance of traffic change during this interval for demo
+            if (rand > 0.8) {
+              const levels: ('Low' | 'Medium' | 'High' | 'Severe')[] = ['Low', 'Medium', 'High', 'Severe'];
+              const currentIdx = levels.indexOf(monitor.trafficLevel);
+              const direction = Math.random() > 0.4 ? 1 : -1; // biased towards worsening traffic
+              const nextIdx = Math.max(0, Math.min(levels.length - 1, currentIdx + direction));
+              const nextLevel = levels[nextIdx];
+              
+              if (nextLevel !== monitor.trafficLevel) {
+                const newEta = recalculateEta(monitor.distance, nextLevel);
+                return {
+                  ...monitor,
+                  trafficLevel: nextLevel,
+                  currentEtaMinutes: newEta,
+                  lastUpdated: new Date().toISOString(),
+                  alerts: [...monitor.alerts, `ALERT: Traffic conditions changed to ${nextLevel}. New ETA is ${newEta} mins.`]
+                };
+              }
+            }
+          }
+          return monitor;
+        }));
+      }, 8000); 
+      return () => clearInterval(interval);
+    }
+  }, [currentScreen]);
 
   const [trucks] = useState<TruckType[]>([
     { id: 't1', type: 'Small Pickup', capacity: 500, icon: '🛻' },
@@ -430,6 +900,18 @@ export default function App() {
 
   // Auth State Listener & Real-time History sync
   useEffect(() => {
+    // CRITICAL: Test Connection to Firestore
+    const testConnection = async () => {
+      try {
+        await getDocFromServer(doc(db, 'test', 'connection'));
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('the client is offline')) {
+          console.error("Please check your Firebase configuration or internet connection.");
+        }
+      }
+    };
+    testConnection();
+
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (user) {
         localStorage.setItem('isLoggedIn', 'true');
@@ -458,13 +940,15 @@ export default function App() {
             }
           } catch (err) {
             console.error("Farmer profile sync failed:", err);
+            handleFirestoreError(err, OperationType.GET, `farmers/${user.uid}`);
           }
         };
         syncFarmer();
 
         // Real-time tasks listener
+        const tasksPath = 'tasks';
         const unsubscribeTasks = onSnapshot(
-          query(collection(db, 'tasks'), where('userId', '==', user.uid)),
+          query(collection(db, tasksPath), where('userId', '==', user.uid)),
           (snapshot) => {
             const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FarmTask));
             // Sort in client
@@ -472,6 +956,7 @@ export default function App() {
             setTasks(docs);
           }, (err) => {
             console.error("Tasks sync failed:", err);
+            handleFirestoreError(err, OperationType.LIST, tasksPath);
           }
         );
 
@@ -1109,7 +1594,7 @@ export default function App() {
         "fastestRoute": { "time": "Xh Ym", "distance": "Xkm", "traffic": "status", "fuel": "₹Amount" },
         "cheapestRoute": { "time": "Xh Ym", "distance": "Xkm", "traffic": "status", "fuel": "₹Amount" },
         "recommended": "Fastest" | "Cheapest",
-        "reason": "Why this route is recommended (mention fuel vs time trade-offs)",
+        "reason": "Detailed justification. Mention specific traffic conditions (e.g. bypasses a major toll bottleneck or heavy city traffic) and specific cost savings (e.g. saves ₹2500 in fuel) or time benefits (e.g. avoids a 2-hour delay).",
         "alternativeSuggestion": "One line advice on an alternative (e.g. specialized cold storage route)",
         "delayRisk": "Low" | "Medium" | "High"
       }`;
@@ -1245,6 +1730,7 @@ export default function App() {
       navigateTo('dashboard');
     } catch (error: any) {
       console.error("Profile save error:", error);
+      handleFirestoreError(error, OperationType.WRITE, `farmers/${user.uid}`);
       setAuthError("Failed to save profile. Please check your connection.");
     } finally {
       setIsAuthLoading(false);
@@ -1269,6 +1755,7 @@ export default function App() {
       setTimeout(() => setShowSubscriptionToast(false), 5000);
     } catch (error) {
       console.error("Subscription failed:", error);
+      handleFirestoreError(error, OperationType.WRITE, `farmers/${user.uid}`);
     } finally {
       setIsSubscribing(false);
     }
@@ -1342,7 +1829,8 @@ export default function App() {
       // Save to Firestore - using setDoc to ensure 'id' field is present in data as required by rules
       const docId = Math.random().toString(36).substr(2, 9);
       const predictionWithId = { ...predictionData, id: docId };
-      await setDoc(doc(db, 'predictions', docId), predictionWithId);
+      const predictionsPath = 'predictions';
+      await setDoc(doc(db, predictionsPath, docId), predictionWithId);
       
       const newPrediction: Prediction = {
         id: docId,
@@ -1354,6 +1842,9 @@ export default function App() {
       navigateTo('result');
     } catch (error: any) {
       console.error("AI Prediction Error:", error);
+      if (error?.message && error.message.includes('permission')) {
+        handleFirestoreError(error, OperationType.WRITE, 'predictions');
+      }
       // Fallback to mock if AI fails
       const mockResult: Prediction = {
         id: Math.random().toString(36).substr(2, 9),
@@ -1377,91 +1868,9 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-bg flex flex-col">
-      {/* NAVBAR */}
+    <div className="min-h-screen bg-brand-bg font-sans selection:bg-brand-primary selection:text-white">
       {currentScreen !== 'login' && currentScreen !== 'otp' && (
-        <nav className="bg-white border-b border-brand-border sticky top-0 z-50 shadow-sm">
-          <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-            <div 
-              className="flex items-center gap-3 cursor-pointer group" 
-              onClick={() => navigateTo('dashboard')}
-            >
-              <Logo 
-                className="w-10 h-10 group-hover:rotate-6 transition-transform" 
-                showText={true} 
-              />
-            </div>
-
-              <div className="hidden md:flex items-center gap-6 font-bold text-[13px] tracking-wide">
-              <button 
-                onClick={() => navigateTo('dashboard')}
-                className={`${currentScreen === 'dashboard' ? 'text-brand-primary' : 'text-brand-muted hover:text-brand-dark'} transition-colors`}
-              >
-                DASHBOARD
-              </button>
-              <button 
-                onClick={() => navigateTo('tasks')}
-                className={`${currentScreen === 'tasks' ? 'text-brand-primary' : 'text-brand-muted hover:text-brand-dark'} transition-colors`}
-              >
-                FARM TASKS
-              </button>
-              <button 
-                onClick={() => navigateTo('input')}
-                className="bg-brand-highlight px-4 py-2 rounded-xl text-brand-primary hover:bg-brand-primary hover:text-white transition-all shadow-sm"
-              >
-                NEW PREDICTION
-              </button>
-              <button 
-                onClick={() => navigateTo('inventory')}
-                className="bg-green-50 px-4 py-2 rounded-xl text-green-700 border border-green-100 hover:bg-green-600 hover:text-white transition-all shadow-sm font-bold flex items-center gap-2"
-              >
-                <span className="text-lg">📦</span>
-                INVENTORY
-              </button>
-              <button 
-                onClick={() => navigateTo('tracking')}
-                className="bg-blue-50 px-4 py-2 rounded-xl text-blue-700 border border-blue-100 hover:bg-blue-600 hover:text-white transition-all shadow-sm font-bold flex items-center gap-2"
-              >
-                <span className="text-lg">🚚</span>
-                TRACK BATCH
-              </button>
-              <button 
-                onClick={() => navigateTo('load_optimization')}
-                className="bg-amber-50 px-4 py-2 rounded-xl text-amber-700 border border-amber-100 hover:bg-amber-600 hover:text-white transition-all shadow-sm font-bold flex items-center gap-2"
-              >
-                <span className="text-lg">🧩</span>
-                OPTIMIZE LOAD
-              </button>
-              <button 
-                onClick={() => navigateTo('logistics')}
-                className="bg-indigo-50 px-4 py-2 rounded-xl text-indigo-700 border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all shadow-sm font-bold flex items-center gap-2"
-              >
-                <span className="text-lg">🤝</span>
-                FIND TRANSPORT
-              </button>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={handleLogout}
-                className="flex items-center gap-1.5 text-brand-muted hover:text-red-500 font-bold transition-all px-3 py-1.5 rounded-xl text-sm"
-              >
-                <span className="text-lg">🚪</span>
-                <span className="hidden sm:inline">Logout</span>
-              </button>
-              <div 
-                className="w-10 h-10 rounded-xl overflow-hidden border-2 border-brand-border cursor-pointer hover:border-brand-primary transition-all"
-                onClick={() => navigateTo('profile')}
-              >
-                <img 
-                  src={currentFarmer?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${auth.currentUser?.uid}`} 
-                  className="w-full h-full object-cover"
-                  alt="Profile"
-                />
-              </div>
-            </div>
-          </div>
-        </nav>
+        <Navbar currentScreen={currentScreen} navigateTo={navigateTo} language={language} setLanguage={setLanguage} />
       )}
 
       <main className="flex-1 w-full max-w-7xl mx-auto relative px-4 sm:px-6 py-4 md:py-6">
@@ -1832,170 +2241,584 @@ export default function App() {
         )}
         {currentScreen === 'dashboard' && (
           <ScreenWrapper>
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              <div className="lg:col-span-8 space-y-8">
-                <header className="flex items-center justify-between">
-                  <div>
-                    <h1 className="text-4xl md:text-6xl font-black text-brand-dark tracking-tighter leading-tight">
-                      Good morning, <span className="text-brand-primary">{currentFarmer?.name?.split(' ')[0] || 'Advisor'}! 👋</span>
-                    </h1>
-                    <p className="text-xl text-brand-muted mt-2 font-medium">Harness AI to maximize regional farm productivity and market returns.</p>
+            <Hero />
+            
+            <div className="content-width -mt-16 relative z-20 space-y-8">
+              {/* Alerts Section */}
+              <div className="space-y-4">
+                <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-xl flex items-center gap-4 shadow-sm">
+                  <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
+                    <AlertTriangle size={20} />
                   </div>
-                  <div className="hidden sm:block">
-                    <Button 
-                      variant="primary" 
-                      onClick={() => navigateTo('realtime_dashboard')}
-                      className="w-auto px-6 py-3 text-sm font-black tracking-widest bg-brand-dark hover:bg-brand-primary"
-                    >
-                      <LayoutDashboard size={18} /> REAL-TIME DASHBOARD
-                    </Button>
+                  <p className="text-sm text-amber-900 font-medium tracking-tight">
+                    Moderate rainfall expected in next 24 hours — plan irrigation accordingly
+                  </p>
+                </div>
+                <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-xl flex items-center gap-4 shadow-sm">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                    <Info size={20} />
                   </div>
-                  <div className="hidden sm:block">
-                    <img 
-                      src={currentFarmer?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${auth.currentUser?.uid}`} 
-                      className="w-20 h-20 rounded-3xl object-cover border-4 border-white shadow-xl"
-                      alt="Profile"
-                    />
-                  </div>
-                </header>
+                  <p className="text-sm text-blue-900 font-medium tracking-tight">
+                    UV index may reach 9 this afternoon — avoid midday fieldwork
+                  </p>
+                </div>
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card 
-                    className="flex flex-col justify-between h-[450px] bg-[url('https://images.unsplash.com/photo-1592833159057-65c697b0a88b?auto=format&fit=crop&q=80&w=800')] bg-cover bg-center border-none relative overflow-hidden group cursor-pointer shadow-2xl"
-                    onClick={() => navigateTo('input')}
-                  >
-                    <div className="absolute inset-0 bg-white/60 backdrop-blur-md group-hover:bg-white/50 transition-colors"></div>
-                    <div className="relative z-10 p-6">
-                       <span className="bg-brand-primary text-white px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest shadow-xl">Analysis Active</span>
+              {/* Quick Actions Grid */}
+              <div className="space-y-6 pt-4">
+                <h2 className="text-2xl font-bold text-brand-dark tracking-tight leading-none px-1">Quick Actions</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+                  <div className="quick-action-card group" onClick={() => navigateTo('input')}>
+                    <div className="w-16 h-16 bg-brand-primary rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                      <Leaf size={32} />
                     </div>
-                    <div className="relative z-10 p-8 space-y-4">
-                      <h2 className="text-6xl font-black text-brand-dark leading-[0.9] tracking-tighter">Price <br/>Prediction</h2>
-                      <p className="text-brand-primary font-black text-lg">Calculate Mandi potential →</p>
-                      <div className="w-16 h-16 bg-brand-primary rounded-full flex items-center justify-center text-white shadow-2xl group-hover:translate-x-2 transition-transform">
-                        <ArrowRight size={32} />
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900">Crop Advisor</h4>
+                      <p className="text-sm text-gray-500 font-medium mt-1">AI-powered crop selection insights</p>
+                    </div>
+                  </div>
+
+                  <div className="quick-action-card group" onClick={() => navigateTo('logistics')}>
+                    <div className="w-16 h-16 bg-brand-gold rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                      <TrendingUp size={32} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900">Market Prices</h4>
+                      <p className="text-sm text-gray-500 font-medium mt-1">Live Mandi rates & trends</p>
+                    </div>
+                  </div>
+
+                  <div className="quick-action-card group" onClick={() => navigateTo('optimization')}>
+                    <div className="w-16 h-16 bg-brand-secondary rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                      <Zap size={32} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900">Yield Predictor</h4>
+                      <p className="text-sm text-gray-500 font-medium mt-1">Predict harvests & soil health</p>
+                    </div>
+                  </div>
+
+                  <div className="quick-action-card group" onClick={() => navigateTo('input')}>
+                    <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                      <ImageIcon size={32} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900">Scan Plant</h4>
+                      <p className="text-sm text-gray-500 font-medium mt-1">Detect diseases instantly</p>
+                    </div>
+                  </div>
+
+                  <div className="quick-action-card group" onClick={() => navigateTo('tasks')}>
+                    <div className="w-16 h-16 bg-orange-700 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                      <BookOpen size={32} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900">Farm Diary</h4>
+                      <p className="text-sm text-gray-500 font-medium mt-1">Log activities & expenses</p>
+                    </div>
+                  </div>
+
+                  <div className="quick-action-card group" onClick={() => navigateTo('inventory')}>
+                    <div className="w-16 h-16 bg-brand-primary-light rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                      <PackageCheck size={32} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900">Inventory</h4>
+                      <p className="text-sm text-gray-500 font-medium mt-1">Manage stock & supplies</p>
+                    </div>
+                  </div>
+
+                  <div className="quick-action-card group" onClick={() => navigateTo('logistics')}>
+                    <div className="w-16 h-16 bg-indigo-500 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                      <Handshake size={32} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900">Partner Match</h4>
+                      <p className="text-sm text-gray-500 font-medium mt-1">Find transport & buyers</p>
+                    </div>
+                  </div>
+
+                  <div className="quick-action-card group" onClick={() => navigateTo('tracking')}>
+                    <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                      <Truck size={32} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900">Traceability</h4>
+                      <p className="text-sm text-gray-500 font-medium mt-1">Live batch tracking</p>
+                    </div>
+                  </div>
+
+                  <div className="quick-action-card group" onClick={() => navigateTo('delivery_monitor')}>
+                    <div className="w-16 h-16 bg-purple-600 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                      <Navigation size={32} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900">Delivery Monitor</h4>
+                      <p className="text-sm text-gray-500 font-medium mt-1">Real-time ETA & traffic alerts</p>
+                    </div>
+                  </div>
+
+                  <div className="quick-action-card group" onClick={() => navigateTo('load_optimization')}>
+                    <div className="w-16 h-16 bg-amber-600 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                      <Layout size={32} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900">Load Optimizer</h4>
+                      <p className="text-sm text-gray-500 font-medium mt-1">Reduce costs & transit waste</p>
+                    </div>
+                  </div>
+
+                  <div className="quick-action-card group" onClick={() => navigateTo('weather')}>
+                    <div className="w-16 h-16 bg-blue-400 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                      <CloudSun size={32} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-gray-900">Weather Forecast</h4>
+                      <p className="text-sm text-gray-500 font-medium mt-1">Rain, temp & farm advisory</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ScreenWrapper>
+        )}
+
+        {/* WEATHER SCREEN */}
+        {currentScreen === 'weather' && (
+          <ScreenWrapper>
+            <div className="max-w-6xl mx-auto py-10 space-y-12 px-4">
+              <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                  <button onClick={() => navigateTo('dashboard')} className="mb-6 group flex items-center gap-2 font-black text-brand-primary tracking-[0.2em] text-xs transition-transform hover:-translate-x-1">
+                    <ChevronLeft size={20} /> RETURN TO DASHBOARD
+                  </button>
+                  <h1 className="text-6xl font-black text-brand-dark tracking-tighter leading-[0.9]">Farm <br/><span className="text-blue-500">Weather</span></h1>
+                  <p className="text-xl text-brand-muted font-medium mt-4">Localized forecast and irrigation advisory for {weatherData?.city || 'your region'}.</p>
+                </div>
+                <div className="flex items-center gap-4">
+                   <input 
+                     type="text" 
+                     placeholder="Change location..."
+                     className="px-6 py-4 rounded-2xl bg-white border-2 border-brand-border focus:border-brand-primary outline-none font-bold"
+                     onKeyDown={(e) => {
+                       if (e.key === 'Enter') {
+                         fetchWeather((e.target as HTMLInputElement).value);
+                         (e.target as HTMLInputElement).value = '';
+                       }
+                     }}
+                   />
+                   <Button 
+                    onClick={() => fetchWeather(weatherData?.city)}
+                    className="w-16 h-16 rounded-2xl p-0 bg-brand-dark"
+                  >
+                    <div className={isWeatherLoading ? 'animate-spin' : ''}>
+                      <Zap size={24} />
+                    </div>
+                  </Button>
+                </div>
+              </header>
+
+              {isWeatherLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                  <Loader2 size={48} className="animate-spin text-brand-primary" />
+                  <p className="font-black text-brand-muted tracking-widest uppercase text-sm">Syncing with satellites...</p>
+                </div>
+              ) : weatherData ? (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Current Weather Card */}
+                  <Card className="lg:col-span-2 p-0 overflow-hidden border-2 border-brand-border flex flex-col md:flex-row">
+                    <div className="flex-1 p-10 bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex flex-col justify-between min-h-[300px]">
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <MapPin size={16} className="text-white/70" />
+                          <span className="text-sm font-black tracking-widest uppercase text-white/80">{weatherData.city}</span>
+                        </div>
+                        <h2 className="text-8xl font-black tracking-tighter leading-none">{weatherData.temperature}°</h2>
+                        <p className="text-2xl font-bold mt-2 opacity-90">{weatherData.condition}</p>
+                      </div>
+                      <div className="flex items-center gap-6 mt-8 overflow-x-auto pb-2">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black uppercase tracking-widest opacity-70">Humidity</span>
+                          <span className="text-xl font-black">{weatherData.humidity}%</span>
+                        </div>
+                        <div className="w-[1px] h-8 bg-white/20"></div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black uppercase tracking-widest opacity-70">Rain Prob.</span>
+                          <span className="text-xl font-black">{weatherData.rainProbability}%</span>
+                        </div>
+                        <div className="w-[1px] h-8 bg-white/20"></div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black uppercase tracking-widest opacity-70">Wind</span>
+                          <span className="text-xl font-black">{weatherData.windSpeed} km/h</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex-1 p-10 bg-white space-y-8">
+                      <h3 className="text-xs font-black uppercase text-brand-muted tracking-[0.2em]">Farm Advisory</h3>
+                      <div className="space-y-6">
+                        {weatherData.rainProbability > 50 ? (
+                          <div className="flex gap-4">
+                            <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600 shrink-0">
+                              <AlertTriangle size={24} />
+                            </div>
+                            <div>
+                              <h4 className="font-black text-brand-dark tracking-tight">Pause Irrigation</h4>
+                              <p className="text-sm text-brand-muted font-medium mt-1">High rain probability detected. Natural watering will be sufficient for most crops today.</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex gap-4">
+                            <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-green-600 shrink-0">
+                              <CheckCircle2 size={24} />
+                            </div>
+                            <div>
+                              <h4 className="font-black text-brand-dark tracking-tight">Ideal Spraying Window</h4>
+                              <p className="text-sm text-brand-muted font-medium mt-1">Low wind and no rain predicted. Good time for foliar application or pest control.</p>
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex gap-4">
+                          <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 shrink-0">
+                            <Droplets size={24} />
+                          </div>
+                          <div>
+                            <h4 className="font-black text-brand-dark tracking-tight">Watering Schedule</h4>
+                            <p className="text-sm text-brand-muted font-medium mt-1">Due to {weatherData.temperature}°C heat, consider deep irrigation for tomatoes in the late evening.</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </Card>
 
-                  <div className="flex flex-col gap-6">
-                    <Card 
-                      className="flex-1 flex flex-col justify-center gap-4 bg-white border-brand-border cursor-pointer hover:border-brand-primary transition-all group"
-                      onClick={() => navigateTo('tasks')}
-                    >
-                       <div className="flex items-center gap-6">
-                         <div className="w-16 h-16 bg-brand-surface rounded-2xl flex items-center justify-center shadow-sm text-3xl group-hover:scale-110 transition-transform font-sans">📋</div>
-                         <div>
-                           <h3 className="text-xl font-bold text-brand-dark tracking-tight leading-none mb-1">Farm Tasks</h3>
-                           <p className="text-xs text-brand-primary font-black uppercase tracking-widest">
-                             {tasks.filter(t => t.status === 'Pending').length} Pending
-                           </p>
-                         </div>
-                       </div>
-                       
-                       {tasks.filter(t => t.status === 'Pending').length > 0 && (
-                         <div className="mt-2 space-y-2 border-t border-brand-border pt-4">
-                           {tasks.filter(t => t.status === 'Pending').slice(0, 1).map(task => (
-                             <div key={task.id} className="flex items-center gap-3">
-                                <div className="w-2 h-2 rounded-full bg-brand-primary animate-pulse"></div>
-                                <span className="text-sm font-black text-brand-dark truncate tracking-tight">{task.title}</span>
-                                <span className="text-[10px] text-brand-muted font-bold ml-auto">{new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                  {/* 5-Day Forecast */}
+                  <Card className="p-8 space-y-8 border-2 border-brand-border">
+                    <h3 className="text-xs font-black uppercase text-brand-muted tracking-[0.2em]">5-Day Forecast</h3>
+                    <div className="space-y-6">
+                      {weatherData.forecast.map((day, idx) => (
+                        <div key={idx} className="flex items-center justify-between group">
+                          <div className="w-12">
+                            <span className="text-sm font-black text-brand-dark">{day.day}</span>
+                          </div>
+                          <div className="flex items-center gap-3 flex-1 justify-center">
+                            <div className="text-blue-500">
+                               {day.condition.toLowerCase().includes('rain') ? <CloudRain size={20} /> : 
+                                day.condition.toLowerCase().includes('cloud') ? <CloudSun size={20} /> : <Sun size={20} />}
+                            </div>
+                            <span className="text-[10px] font-bold text-brand-muted truncate max-w-[80px]">{day.condition}</span>
+                          </div>
+                          <div className="flex items-center gap-2 min-w-[70px] justify-end">
+                            <span className="text-sm font-black text-brand-dark">{day.high}°</span>
+                            <span className="text-sm font-bold text-brand-muted">{day.low}°</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="pt-6 border-t border-brand-border/40">
+                       <p className="text-[10px] font-bold text-brand-muted leading-relaxed italic">"Weather patterns affect fertilizer runoff. Apply nutrients at least 6 hours before rain."</p>
+                    </div>
+                  </Card>
+                </div>
+              ) : null}
+            </div>
+          </ScreenWrapper>
+        )}
+
+        {/* DELIVERY MONITOR SCREEN */}
+        {currentScreen === 'delivery_monitor' && (
+          <ScreenWrapper>
+            <div className="max-w-6xl mx-auto py-10 space-y-12">
+              <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                  <button onClick={() => navigateTo('dashboard')} className="mb-6 group flex items-center gap-2 font-black text-brand-primary tracking-[0.2em] text-xs transition-transform hover:-translate-x-1">
+                    <ChevronLeft size={20} /> RETURN TO DASHBOARD
+                  </button>
+                  <h1 className="text-6xl font-black text-brand-dark tracking-tighter leading-[0.9]">Delivery <br/><span className="text-purple-600">Monitor</span></h1>
+                  <p className="text-xl text-brand-muted font-medium mt-4">Proactive ETA tracking with real-time traffic intelligence.</p>
+                </div>
+                <Button 
+                  onClick={() => {
+                    setAiPredictionResult(null);
+                    setIsEtaModalOpen(true);
+                  }}
+                  className="w-fit px-8 py-5 text-lg font-black bg-brand-dark hover:bg-purple-600"
+                >
+                  <Plus size={24} /> START NEW MONITOR
+                </Button>
+              </header>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Active Monitors */}
+                <div className="lg:col-span-2 space-y-6">
+                  <h3 className="text-xs font-black uppercase text-brand-muted tracking-[0.2em] mb-4">Active Deliveries</h3>
+                  {deliveryMonitors.length === 0 ? (
+                    <Card className="p-12 text-center border-dashed border-2 flex flex-col items-center gap-4">
+                      <Navigation size={48} className="text-brand-border" />
+                      <p className="text-brand-muted font-bold">No active deliveries being monitored.</p>
+                    </Card>
+                  ) : (
+                    <div className="space-y-6">
+                      {deliveryMonitors.map(monitor => (
+                        <Card key={monitor.id} className="p-0 overflow-hidden border-2 border-brand-border hover:border-purple-200 transition-all shadow-sm">
+                          <div className="p-8 space-y-6">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 shadow-inner">
+                                  <Truck size={24} />
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="text-xl font-black text-brand-dark tracking-tight">{monitor.source} → {monitor.destination}</h4>
+                                    <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${
+                                      monitor.status === 'Delayed' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
+                                    }`}>
+                                      {monitor.status}
+                                    </span>
+                                  </div>
+                                  <p className="text-[10px] text-brand-muted font-bold uppercase tracking-widest">BATCH ID: {monitor.id.toUpperCase()}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted font-bold">Current ETA</p>
+                                <p className="text-3xl font-black text-purple-600">{Math.floor(monitor.currentEtaMinutes / 60)}h {monitor.currentEtaMinutes % 60}m</p>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 py-6 border-y border-brand-border/40">
+                              <div className="space-y-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Distance</p>
+                                <p className="text-lg font-black text-brand-dark">{monitor.distance} km</p>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Traffic</p>
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-2.5 h-2.5 rounded-full shadow-sm ${
+                                    monitor.trafficLevel === 'Low' ? 'bg-green-500' :
+                                    monitor.trafficLevel === 'Medium' ? 'bg-amber-500' :
+                                    monitor.trafficLevel === 'High' ? 'bg-orange-500' : 
+                                    'bg-red-600 animate-pulse'
+                                  }`} />
+                                  <p className="text-lg font-black text-brand-dark">{monitor.trafficLevel}</p>
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Base ETA</p>
+                                <p className="text-lg font-black text-brand-dark">{Math.floor(monitor.baseEtaMinutes / 60)}h {monitor.baseEtaMinutes % 60}m</p>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Last Updated</p>
+                                <p className="text-lg font-black text-brand-dark">{new Date(monitor.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                              </div>
+                            </div>
+
+                            <div className="space-y-3">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Activity & Alerts</p>
+                              <div className="space-y-2">
+                                {monitor.alerts.slice(-3).reverse().map((alert, i) => (
+                                  <div key={i} className={`text-xs font-bold p-3 rounded-lg flex items-center gap-3 ${
+                                    alert.includes('ALERT') ? 'bg-red-50 border border-red-100 text-red-700' : 'bg-brand-surface text-brand-muted'
+                                  }`}>
+                                    {alert.includes('ALERT') ? <AlertCircle size={14} /> : <div className="w-1 h-1 bg-brand-muted rounded-full" />}
+                                    {alert}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="bg-brand-surface p-4 flex items-center justify-between border-t border-brand-border/40">
+                             <div className="flex items-center gap-4">
+                                <button className="text-[10px] font-black uppercase tracking-widest text-brand-muted hover:text-brand-dark transition-colors">Route Details</button>
+                                <button 
+                                  onClick={() => setSelectedMonitorForMap(monitor)}
+                                  className="text-[10px] font-black uppercase tracking-widest text-brand-primary hover:text-brand-dark transition-colors flex items-center gap-1"
+                                >
+                                  <MapIcon size={12} /> Live Track
+                                </button>
                              </div>
-                           ))}
-                         </div>
-                       )}
-                    </Card>
+                             <button 
+                               onClick={() => setDeliveryMonitors(deliveryMonitors.filter(m => m.id !== monitor.id))}
+                               className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-700 transition-colors"
+                             >
+                               TERMINATE MONITOR
+                             </button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-                    <Card className="flex-1 flex items-center gap-6 bg-brand-highlight border-brand-highlight-border cursor-pointer hover:bg-brand-highlight/80 transition-all group" onClick={() => navigateTo('inventory')}>
-                       <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-sm text-4xl group-hover:scale-110 transition-transform">📦</div>
-                       <div>
-                         <h3 className="text-xl font-bold text-brand-dark">Inventory System</h3>
-                         <p className="text-sm text-brand-primary font-bold uppercase tracking-widest mt-1">
-                           {inventory.filter(i => i.remainingStock <= i.threshold).length > 0 
-                             ? `${inventory.filter(i => i.remainingStock <= i.threshold).length} LOW STOCK ALERTS`
-                             : 'STOCK LEVELS HEALTHY'}
-                         </p>
-                       </div>
-                    </Card>
+                {/* Logistics Guide */}
+                <div className="space-y-8">
+                  <Card className="p-8 bg-indigo-50 border-none">
+                    <h3 className="text-xs font-black uppercase text-indigo-600 tracking-[0.2em] mb-4 text-[10px]">Monitoring Engine</h3>
+                    <p className="text-sm font-medium text-indigo-900 leading-relaxed mb-6"> Our system recalculates delivery ETAs based on real-time traffic flow. If conditions change significantly, we proactively update the window and alert you for better planning with Mandi agents.</p>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-indigo-600 shadow-sm"><Zap size={16} /></div>
+                        <span className="text-xs font-black text-indigo-900 tracking-tight">Active Traffic Intelligence</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-indigo-600 shadow-sm"><Bell size={16} /></div>
+                        <span className="text-xs font-black text-indigo-900 tracking-tight">Proactive Delay Alerts</span>
+                      </div>
+                    </div>
+                  </Card>
 
-                    <Card className="flex-1 flex items-center gap-6 bg-blue-50 border-blue-100 cursor-pointer hover:bg-blue-100 transition-all group" onClick={() => navigateTo('tracking')}>
-                       <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-sm text-4xl group-hover:scale-110 transition-transform">🚚</div>
-                       <div>
-                         <h3 className="text-xl font-bold text-blue-900 tracking-tight">Traceability</h3>
-                         <p className="text-sm text-blue-600 font-bold uppercase tracking-widest mt-1">
-                           Live Batch Tracking
-                         </p>
-                       </div>
-                    </Card>
-
-                    <Card className="flex-1 flex items-center gap-6 bg-amber-50 border-amber-100 cursor-pointer hover:bg-amber-100 transition-all group" onClick={() => navigateTo('load_optimization')}>
-                       <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-sm text-4xl group-hover:scale-110 transition-transform">🧩</div>
-                       <div>
-                         <h3 className="text-xl font-bold text-amber-900 tracking-tight">Load Optimizer</h3>
-                         <p className="text-sm text-amber-600 font-bold uppercase tracking-widest mt-1">
-                           Reduce Trip Costs
-                         </p>
-                       </div>
-                    </Card>
-
-                    <Card className="flex-1 flex items-center gap-6 bg-indigo-50 border-indigo-100 cursor-pointer hover:bg-indigo-100 transition-all group" onClick={() => navigateTo('logistics')}>
-                       <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-sm text-4xl group-hover:scale-110 transition-transform">🤝</div>
-                       <div>
-                         <h3 className="text-xl font-bold text-indigo-900 tracking-tight">Partner Match</h3>
-                         <p className="text-sm text-indigo-600 font-bold uppercase tracking-widest mt-1">
-                           Find Transport
-                         </p>
-                       </div>
-                    </Card>
-                  </div>
+                  <Card className="p-8 border-2 border-brand-border">
+                    <h3 className="text-xs font-black uppercase text-brand-muted tracking-[0.2em] mb-4 text-[10px]">Traffic Indicators</h3>
+                    <div className="space-y-4">
+                      {['Low', 'Medium', 'High', 'Severe'].map(level => (
+                        <div key={level} className="flex items-center justify-between">
+                          <span className="text-sm font-black text-brand-dark">{level}</span>
+                          <div className={`w-8 h-1.5 rounded-full ${
+                             level === 'Low' ? 'bg-green-500' :
+                             level === 'Medium' ? 'bg-amber-500' :
+                             level === 'High' ? 'bg-orange-500' : 'bg-red-600'
+                          }`} />
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
                 </div>
               </div>
-
-              <div className="lg:col-span-4 space-y-8 h-full">
-                <Card className="bg-white border-brand-border shadow-xl shadow-brand-dark/5 flex flex-col h-full min-h-[600px]">
-                  <h3 className="font-bold text-2xl mb-8 text-brand-dark tracking-tight px-2">Market Intelligence</h3>
-                    <div className="space-y-4 overflow-y-auto flex-1 pr-2 custom-scrollbar">
-                    {alerts.length > 0 ? alerts.map(alert => (
-                      <div key={alert.id} className="flex gap-4 p-5 bg-brand-bg rounded-3xl border border-brand-border group hover:border-brand-primary transition-all cursor-pointer relative">
-                        <div className="w-14 h-14 bg-white border border-brand-border rounded-2xl flex items-center justify-center shrink-0 shadow-sm text-2xl group-hover:scale-110 transition-transform">
-                          {alert.type === 'warning' ? '📈' : alert.type === 'success' ? '🚀' : '💡'}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-base text-brand-dark leading-tight truncate pr-4">{alert.title}</h4>
-                          <p className="text-xs text-brand-muted font-semibold mt-1 leading-relaxed pr-6 line-clamp-2">{alert.description}</p>
-                        </div>
-                        <button 
-                          onClick={(e) => dismissAlert(alert.id, e)}
-                          className="absolute top-4 right-4 text-brand-muted opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all p-1"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    )) : (
-                      <div className="text-center py-20 px-6 text-brand-muted opacity-50 bg-brand-surface rounded-[40px] border-2 border-dashed border-brand-border">
-                        <Loader2 className="animate-spin mx-auto mb-4" size={32} />
-                        <p className="text-lg font-bold">Scanning Markets...</p>
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-8 pt-8 border-t border-brand-border">
-                    <Button 
-                      variant={currentFarmer?.isProSubscriber ? "secondary" : "outline"} 
-                      onClick={handleSubscribe}
-                      disabled={isSubscribing || currentFarmer?.isProSubscriber}
-                      className="text-xs font-black tracking-[0.2em] py-4 rounded-2xl relative overflow-hidden"
-                    >
-                      {isSubscribing ? (
-                        <Loader2 className="animate-spin" size={16} />
-                      ) : currentFarmer?.isProSubscriber ? (
-                        <span className="flex items-center gap-2"><CheckCircle2 size={16} /> PRO UPDATES ACTIVE</span>
-                      ) : (
-                        "SUBSCRIBE TO PRO UPDATES"
-                      )}
-                    </Button>
-                  </div>
-                </Card>
-              </div>
             </div>
+
+            {/* Modal for adding monitor */}
+            <AnimatePresence>
+               {selectedMonitorForMap && (
+                 <DeliveryMap 
+                   monitor={selectedMonitorForMap} 
+                   onClose={() => setSelectedMonitorForMap(null)} 
+                 />
+               )}
+            </AnimatePresence>
+            <AnimatePresence>
+              {isEtaModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setIsEtaModalOpen(false)}
+                    className="absolute inset-0 bg-brand-dark/60 backdrop-blur-sm"
+                  />
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    className="relative w-full max-w-lg bg-white rounded-[40px] p-10 shadow-2xl overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 p-8">
+                       <button onClick={() => setIsEtaModalOpen(false)} className="text-brand-muted hover:text-brand-dark"><X size={24} /></button>
+                    </div>
+                    <h2 className="text-3xl font-black text-brand-dark tracking-tighter mb-2">New Monitor</h2>
+                    <p className="text-brand-muted font-bold text-sm mb-8">Enter transport details to start proactive tracking.</p>
+                    
+                    <form onSubmit={handleAddMonitor} className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-brand-muted px-1">Source Location</label>
+                        <input 
+                          required
+                          type="text" 
+                          value={etaForm.source}
+                          onChange={e => setEtaForm({...etaForm, source: e.target.value})}
+                          placeholder="e.g. Nashik Mandi"
+                          className="w-full px-6 py-4 rounded-2xl bg-brand-surface border-2 border-transparent focus:border-purple-500 outline-none font-bold transition-all"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-brand-muted px-1">Destination</label>
+                        <input 
+                          required
+                          type="text" 
+                          value={etaForm.destination}
+                          onChange={e => setEtaForm({...etaForm, destination: e.target.value})}
+                          placeholder="e.g. Vashi Market"
+                          className="w-full px-6 py-4 rounded-2xl bg-brand-surface border-2 border-transparent focus:border-purple-500 outline-none font-bold transition-all"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-brand-muted px-1">Distance (KM)</label>
+                          <input 
+                            required
+                            type="number" 
+                            value={etaForm.distance}
+                            onChange={e => setEtaForm({...etaForm, distance: e.target.value})}
+                            placeholder="e.g. 150"
+                            className="w-full px-6 py-4 rounded-2xl bg-brand-surface border-2 border-transparent focus:border-purple-500 outline-none font-bold transition-all"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-brand-muted px-1">Current Traffic</label>
+                          <select 
+                            value={etaForm.trafficLevel}
+                            onChange={e => setEtaForm({...etaForm, trafficLevel: e.target.value as any})}
+                            className="w-full px-6 py-4 rounded-2xl bg-brand-surface border-2 border-transparent focus:border-purple-500 outline-none font-bold transition-all appearance-none cursor-pointer"
+                          >
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                            <option value="Severe">Severe</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {aiPredictionResult ? (
+                        <motion.div 
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          className="p-6 bg-brand-surface rounded-3xl border-2 border-brand-primary/20 space-y-4"
+                        >
+                          <div className="flex items-center justify-between">
+                             <div className="flex items-center gap-2">
+                                <Sparkles size={16} className="text-brand-primary" />
+                                <span className="text-[10px] font-black uppercase tracking-widest text-brand-dark">AI Prediction</span>
+                             </div>
+                             <span className={`px-2 py-0.5 rounded-[4px] text-[8px] font-black uppercase tracking-widest ${
+                               aiPredictionResult.delayRisk === 'Low' ? 'bg-green-100 text-green-600' :
+                               aiPredictionResult.delayRisk === 'Medium' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'
+                             }`}>
+                               Risk: {aiPredictionResult.delayRisk}
+                             </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                             <p className="text-xs font-bold text-brand-muted">Estimated Time</p>
+                             <p className="text-xl font-black text-brand-primary">{aiPredictionResult.eta}</p>
+                          </div>
+                          <p className="text-[10px] font-bold text-brand-dark leading-relaxed">
+                             {aiPredictionResult.details}
+                          </p>
+                          {aiPredictionResult.altRoute && (
+                            <div className="pt-3 border-t border-brand-border/40">
+                               <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted mb-1 flex items-center gap-1">
+                                  <ChevronRight size={10} /> Alternative Route
+                               </p>
+                               <p className="text-[10px] font-black text-brand-dark italic">{aiPredictionResult.altRoute}</p>
+                            </div>
+                          )}
+                        </motion.div>
+                      ) : (
+                        <Button 
+                          type="button"
+                          onClick={handleGetAiPrediction}
+                          disabled={isAiPredicting || !etaForm.source || !etaForm.destination || !etaForm.distance}
+                          variant="outline"
+                          className="w-full border-2 border-brand-primary/20 hover:border-brand-primary text-brand-primary flex items-center justify-center gap-2 py-4"
+                        >
+                          {isAiPredicting ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                          {isAiPredicting ? 'Consulting Logistics AI...' : 'Get AI Arrival Prediction'}
+                        </Button>
+                      )}
+
+                      <Button type="submit" className="bg-brand-dark hover:bg-purple-600 mt-4">
+                        START MONITORING
+                      </Button>
+                    </form>
+                  </motion.div>
+                </div>
+              )}
+            </AnimatePresence>
           </ScreenWrapper>
         )}
 
@@ -2534,16 +3357,27 @@ export default function App() {
                   <h1 className="text-6xl font-black text-brand-dark tracking-tighter leading-[0.9]">Stock <br/><span className="text-brand-primary">Management</span></h1>
                   <p className="text-xl text-brand-muted font-medium mt-4">Real-time visibility into your regional supply chain inventory.</p>
                 </div>
-                <Button 
-                  onClick={() => {
-                    setEditingInventoryId(null);
-                    setInventoryForm({ name: '', availableStock: '', soldStock: '0', threshold: '', unit: 'kg' });
-                    setIsInventoryModalOpen(true);
-                  }}
-                  className="w-fit px-8 py-5 text-lg font-black bg-brand-dark hover:bg-brand-primary"
-                >
-                  <Plus size={24} /> ADD NEW PRODUCT
-                </Button>
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <Button 
+                    onClick={calculateInventoryThresholds}
+                    disabled={isCalculatingThresholds}
+                    variant="outline"
+                    className="w-full sm:w-auto px-6 py-5 text-sm font-black border-2 bg-white hover:bg-brand-surface flex items-center gap-2"
+                  >
+                    {isCalculatingThresholds ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} className="text-brand-primary" />}
+                    {Object.keys(inventorySuggestions).length > 0 ? 'RE-OPTIMIZE' : 'AI THRESHOLD SUGGEST'}
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setEditingInventoryId(null);
+                      setInventoryForm({ name: '', availableStock: '', soldStock: '0', threshold: '', unit: 'kg' });
+                      setIsInventoryModalOpen(true);
+                    }}
+                    className="w-fit px-8 py-5 text-lg font-black bg-brand-dark hover:bg-brand-primary"
+                  >
+                    <Plus size={24} /> ADD NEW PRODUCT
+                  </Button>
+                </div>
               </header>
 
               {/* Inventory Alerts */}
@@ -2569,11 +3403,18 @@ export default function App() {
                 {inventory.map(item => {
                   const usagePercent = Math.min(100, (item.soldStock / item.availableStock) * 100);
                   const isLow = item.remainingStock <= item.threshold;
+                  const suggestion = inventorySuggestions[item.id];
                   const status = isLow ? 'Low' : item.remainingStock < item.threshold * 2 ? 'Medium' : 'High';
                   const statusColor = isLow ? 'bg-red-500' : status === 'Medium' ? 'bg-amber-500' : 'bg-brand-primary';
 
                   return (
-                    <Card key={item.id} className={`p-8 bg-white border-2 transition-all hover:border-brand-primary group ${isLow ? 'border-red-200 bg-red-50/30' : 'border-brand-border'}`}>
+                    <Card key={item.id} className={`p-8 bg-white border-2 transition-all hover:border-brand-primary group ${isLow ? 'border-red-200 bg-red-50/30' : 'border-brand-border'} relative overflow-hidden`}>
+                      {suggestion && (
+                        <div className="absolute top-0 right-0 py-1 px-4 bg-brand-primary text-white text-[10px] font-black uppercase tracking-widest rounded-bl-xl shadow-lg z-10 animate-in fade-in slide-in-from-top-2">
+                           AI Optimized
+                        </div>
+                      )}
+                      
                       <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-4">
                           <div className={`w-12 h-12 ${statusColor} text-white rounded-xl flex items-center justify-center text-xl shadow-lg`}>
@@ -2637,6 +3478,28 @@ export default function App() {
                         )}
                       </div>
 
+                      {suggestion && (
+                        <motion.div 
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="mb-8 p-5 bg-brand-surface rounded-3xl border-2 border-brand-primary/20 flex items-center justify-between gap-4"
+                        >
+                           <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-brand-primary/10 text-brand-primary rounded-xl flex items-center justify-center shrink-0">
+                                 <Sparkles size={18} />
+                              </div>
+                              <div>
+                                 <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted">AI Suggests</p>
+                                 <p className="font-black text-brand-dark">Set to {suggestion}{item.unit}</p>
+                              </div>
+                           </div>
+                           <div className="text-right">
+                              <p className="text-[10px] font-bold text-brand-primary">- Prev: {item.threshold}</p>
+                              <p className="text-[10px] font-black text-green-600">Optimal Buffer</p>
+                           </div>
+                        </motion.div>
+                      )}
+
                       <div className="flex gap-3">
                         <button 
                           onClick={() => {
@@ -2665,6 +3528,40 @@ export default function App() {
                   );
                 })}
               </div>
+
+              {Object.keys(inventorySuggestions).length > 0 && (
+                <div className="sticky bottom-10 left-0 right-0 z-50 px-4">
+                  <motion.div 
+                    initial={{ y: 50, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    className="max-w-xl mx-auto bg-brand-dark text-white p-6 rounded-[40px] shadow-2xl flex items-center justify-between gap-6 border-4 border-brand-primary"
+                  >
+                    <div className="flex items-center gap-4">
+                       <div className="w-14 h-14 bg-brand-primary rounded-full flex items-center justify-center text-white shrink-0 animate-pulse">
+                          <Sparkles size={28} />
+                       </div>
+                       <div>
+                          <h4 className="text-lg font-black tracking-tight">Apply AI Optimization</h4>
+                          <p className="text-xs font-bold opacity-70">Update all thresholds to recommended values.</p>
+                       </div>
+                    </div>
+                    <div className="flex gap-3">
+                       <button 
+                        onClick={() => setInventorySuggestions({})}
+                        className="px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white/10"
+                       >
+                         Discard
+                       </button>
+                       <button 
+                         onClick={applyInventorySuggestions}
+                         className="px-8 py-4 bg-brand-primary rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all"
+                       >
+                         Update All
+                       </button>
+                    </div>
+                  </motion.div>
+                </div>
+              )}
             </div>
           </ScreenWrapper>
         )}
@@ -2895,6 +3792,97 @@ export default function App() {
                   </div>
                 </Card>
               </div>
+
+              {/* Product Demand Chart */}
+              <Card className="p-10 space-y-10">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-indigo-500 text-white rounded-2xl flex items-center justify-center shadow-lg">
+                      <TrendingUp size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black text-brand-dark tracking-tight">Market Demand Analysis 📈</h3>
+                      <p className="text-sm font-medium text-brand-muted">Top 5 most requested products across regional Mandis.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 bg-brand-surface p-2 rounded-2xl border border-brand-border">
+                    <span className="text-[10px] font-black uppercase tracking-widest px-4 text-brand-muted">Data Source: AI Aggregated</span>
+                  </div>
+                </div>
+
+                <div className="h-[450px] w-full pt-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={[
+                        { name: 'Tomato', demand: 850, color: '#EF4444' },
+                        { name: 'Onion', demand: 720, color: '#F59E0B' },
+                        { name: 'Potato', demand: 640, color: '#8B5CF6' },
+                        { name: 'Chilly', demand: 480, color: '#10B981' },
+                        { name: 'Cabbage', demand: 420, color: '#3B82F6' },
+                      ]}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                      barSize={60}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis 
+                        dataKey="name" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fill: '#64748B', fontWeight: 800, fontSize: 12 }}
+                        dy={10}
+                      />
+                      <YAxis 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fill: '#64748B', fontWeight: 600, fontSize: 12 }}
+                      />
+                      <Tooltip 
+                        cursor={{ fill: '#F8FAFC' }}
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            return (
+                              <div className="bg-brand-dark text-white p-4 rounded-2xl shadow-2xl border border-white/10">
+                                <p className="text-xs font-black uppercase tracking-widest opacity-60 mb-1">{payload[0].payload.name}</p>
+                                <p className="text-xl font-black">{payload[0].value} <span className="text-xs opacity-60 ml-1">Requests</span></p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Bar 
+                        dataKey="demand" 
+                        radius={[12, 12, 0, 0]}
+                      >
+                        {[
+                          { name: 'Tomato', demand: 850, color: '#EF4444' },
+                          { name: 'Onion', demand: 720, color: '#F59E0B' },
+                          { name: 'Potato', demand: 640, color: '#8B5CF6' },
+                          { name: 'Chilly', demand: 480, color: '#10B981' },
+                          { name: 'Cabbage', demand: 420, color: '#3B82F6' },
+                        ].map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  {[
+                    { name: 'Tomato', trend: '+12%', color: 'text-red-500' },
+                    { name: 'Onion', trend: '+8%', color: 'text-amber-500' },
+                    { name: 'Potato', trend: '-3%', color: 'text-violet-500' },
+                    { name: 'Chilly', trend: '+15%', color: 'text-emerald-500' },
+                    { name: 'Cabbage', trend: '+5%', color: 'text-blue-500' },
+                  ].map((item) => (
+                    <div key={item.name} className="bg-brand-surface border border-brand-border p-4 rounded-2xl text-center shadow-sm">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-brand-muted mb-1">{item.name}</p>
+                      <p className={`text-lg font-black ${item.color}`}>{item.trend}</p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
             </div>
           </ScreenWrapper>
         )}
@@ -3539,7 +4527,7 @@ export default function App() {
                                   <motion.path 
                                     d="M 50 100 Q 150 50, 250 100 T 450 100" 
                                     fill="none" 
-                                    stroke="#10B981" 
+                                    stroke={routeOptimization.recommended === 'Fastest' ? 'var(--color-brand-primary)' : 'var(--color-brand-gold)'} 
                                     strokeWidth="8" 
                                     strokeLinecap="round" 
                                     strokeDasharray="500"
@@ -3549,7 +4537,7 @@ export default function App() {
                                   />
                                </svg>
                                <div className="absolute left-[50px] top-[100px] -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-brand-dark rounded-full border-4 border-white flex items-center justify-center text-[10px] text-white font-black">S</div>
-                               <div className="absolute right-[50px] top-[100px] translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-brand-primary rounded-full border-4 border-white flex items-center justify-center text-white scale-125 shadow-lg"><MapPin size={16} /></div>
+                               <div className={`absolute right-[50px] top-[100px] translate-x-1/2 -translate-y-1/2 w-10 h-10 ${routeOptimization.recommended === 'Fastest' ? 'bg-brand-primary' : 'bg-brand-gold'} rounded-full border-4 border-white flex items-center justify-center text-white scale-125 shadow-lg`}><MapPin size={16} /></div>
                                <motion.div 
                                  animate={{ 
                                    left: ["10%", "90%"],
@@ -4455,10 +5443,10 @@ export default function App() {
           {/* Floating Bubble */}
           <button 
             onClick={() => setIsChatOpen(true)}
-            className={`fixed bottom-8 right-8 z-[100] w-16 h-16 bg-brand-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all group ${isChatOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}
+            className={`fixed bottom-8 right-8 z-[100] w-12 h-12 bg-white/10 backdrop-blur-md border border-brand-dark/10 text-brand-dark rounded-xl shadow-xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all group ${isChatOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}
           >
-            <MessageCircle size={32} />
-            <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-white animate-pulse" />
+            <Bot size={20} className="group-hover:rotate-12 transition-transform" />
+            <div className="absolute top-0 right-0 w-3 h-3 bg-brand-primary rounded-full border-2 border-brand-bg animate-pulse" />
           </button>
 
           {/* Chat Window */}
@@ -4474,11 +5462,11 @@ export default function App() {
                 <div className="p-6 bg-brand-dark text-white flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center shadow-lg">
-                      <Sparkles size={20} className="text-white" />
+                      <Bot size={24} className="text-white" />
                     </div>
                     <div>
-                      <h4 className="font-black text-sm tracking-tight leading-none mb-1">KisanVikas AI Assistant</h4>
-                      <p className="text-[10px] text-brand-primary font-black uppercase tracking-widest">Active Now</p>
+                      <h4 className="font-black text-sm tracking-tight leading-none mb-1">Kisanvikas AI Agent</h4>
+                      <p className="text-[10px] text-brand-primary font-black uppercase tracking-widest">Powered by Gemini</p>
                     </div>
                   </div>
                   <button 
@@ -4547,7 +5535,7 @@ export default function App() {
       <footer className="bg-white border-t border-brand-border py-12">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8 text-center md:text-left">
           <div className="flex items-center gap-3">
-            <Logo className="w-10 h-10 shadow-md" showText={true} />
+            <Logo className="w-10 h-10 shadow-md" />
           </div>
           <div className="flex gap-8 text-xs font-bold text-brand-muted tracking-widest uppercase">
             <a href="#" className="hover:text-brand-primary transition-colors">Privacy Policy</a>
