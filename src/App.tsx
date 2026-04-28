@@ -382,33 +382,40 @@ const UI_TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     cropAdvisor: 'पीक सल्लागार',
     market: 'बाजार',
     inventory: 'इन्व्हेंटरी',
-    aiAssistant: 'एआय सहाय्यक',
+    aiAssistant: 'AI सहाय्यक',
     profile: 'प्रोफाइल',
     logout: 'लॉग आउट',
     notifications: 'सूचना',
     quickActions: 'त्वरित कृती',
     deliveryMonitor: 'डिलिव्हरी मॉनिटर',
-    traceability: 'ट्रेसिबिलिटी',
-    loadOptimizer: 'लोड ऑप्टिमाइझर',
+    traceability: 'माग काढण्याची क्षमता',
+    loadOptimizer: 'लोड ऑप्टिमायझर',
     marketPrices: 'बाजार भाव',
-    partnerMatch: 'भागीदार शोध',
+    partnerMatch: 'पार्टनर मॅच',
     yieldPredictor: 'उत्पन्न अंदाज',
     scanPlant: 'रोप स्कॅन करा',
-    farmDiary: 'शेती डायरी',
+    farmDiary: 'शेत डायरी',
     weatherForecast: 'हवामान अंदाज',
-    realTimeDashboard: 'रिअल-टाइम डॅशबोर्ड',
-    reactiveIntelligence: 'रिअँक्टिव्ह इंटेलिजन्स',
-    welcomeBack: 'पुनश्च स्वागत,',
+    realTimeDashboard: 'रिअल-टाइम डॅशボード',
+    reactiveIntelligence: 'रिॲक्टिव्ह इंटेलिजन्स',
+    welcomeBack: 'पुन्हा स्वागत आहे,',
     activeShipments: 'सक्रिय शिपमेंट',
     smartChain: 'स्मार्ट चेन',
     controller: 'कंट्रोलर',
-    supplyChainInterconnected: 'सर्व मॉड्युल्स एकमेकांशी जोडलेले आहेत. खालील कोणतेही मूल्य बदलल्यास तुमच्या संपूर्ण पुरवठा साखळी नेटवर्कचे त्वरित पुन:ऑप्टिमायझेशन होईल.',
+    supplyChainInterconnected: 'सर्व मॉड्यूल एकमेकांशी जोडलेले आहेत. खालील कोणतेही मूल्य बदलल्यास तुमचे संपूर्ण पुरवठा साखळी नेटवर्क त्वरित पुन्हा-अनुकूल होईल.',
     rainProbability: 'पावसाची शक्यता',
-    lowRain: 'कमी वारा आणि पावसाचा अंदाज नाही. खते किंवा कीटक नियंत्रणासाठी चांगली वेळ आहे.',
-    highRain: 'पावसाची दाट शक्यता. आज बहुतेक पिकांसाठी नैसर्गिक पाणी पिणे पुरेसे असेल.',
-    aiAdvice: 'हवामानाचा कल खतांच्या वापरावर परिणाम करतो. पावसाच्या किमान ६ तास आधी खते द्या.'
+    lowRain: 'कमी वारा आणि पावसाचा अंदाज नाही. कीटक नियंत्रणासाठी चांगली वेळ आहे.',
+    highRain: 'पावसाची दाट शक्यता. आज बहुतेक पिकांसाठी नैसर्गिक पाणी पुरेसे असेल.',
+    aiAdvice: 'हवामानाचा कल खतांच्या वापरावर परिणाम करतो. पावसाच्या किमान ६ तास आधी खते टाका.'
   },
   Tamil: {
+    dashboard: 'டாஷ்போர்டு',ट चेन',
+    controller: 'कंट्रोलर',
+    supplyChainInterconnected: 'सभी मॉड्यूल परस्पर जुड़े हुए हैं। नीचे दिए गए किसी भी मूल्य को बदलने से आपका संपूर्ण आपूर्ति श्रृंखला नेटवर्क तुरंत पुन: अनुकूलित हो जाएगा।',
+    rainProbability: 'बारिश की संभावना',
+    lowRain: 'कम हवा और बारिश की संभावना नहीं है। पत्ते लगाने या कीट नियंत्रण के लिए अच्छा समय है।',
+    highRain: 'बारिश की उच्च संभावना का पता चला। आज अधिकांश फसलों के लिए प्राकृतिक जल पर्याप्त होगा।',
+    aiAdvice: 'मौसम का पैटर्न उर्वरक के बहाव को प्रभावित करता है। बारिश से कम से कम 6 घंटे पहले पोषक तत्व डाले�  Tamil: {
     dashboard: 'டாஷ்போர்டு',
     cropAdvisor: 'பயிர் ஆலோசகர்',
     market: 'சந்தை',
@@ -423,52 +430,21 @@ const UI_TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     loadOptimizer: 'சுமை உகப்பாக்கி',
     marketPrices: 'சந்தை விலைகள்',
     partnerMatch: 'கூட்டாளர் பொருத்தம்',
-    yieldPredictor: 'மகசூல் கணிப்பான்',
-    scanPlant: 'செடியை ஸ்கேன் செய்க',
+    yieldPredictor: 'மகசூல் கணிப்பு',
+    scanPlant: 'தாவரத்தை ஸ்கேன் செய்',
     farmDiary: 'பண்ணை நாட்குறிப்பு',
     weatherForecast: 'வானிலை முன்னறிவிப்பு',
     realTimeDashboard: 'நிகழ்நேர டாஷ்போர்டு',
-    reactiveIntelligence: 'ரியாக்டிவ் இன்டலிஜென்ஸ்',
+    reactiveIntelligence: 'ரியாக்டிவ் இன்டெலிஜென்ஸ்',
     welcomeBack: 'மீண்டும் வருக,',
     activeShipments: 'செயலில் உள்ள ஏற்றுமதிகள்',
     smartChain: 'ஸ்மார்ட் செயின்',
-    controller: 'கண்ட்ரோலர்',
-    supplyChainInterconnected: 'அனைத்து தொகுதிகளும் ஒன்றோடொன்று இணைக்கப்பட்டுள்ளன. கீழே உள்ள எந்த மதிப்பையும் மாற்றினால், உங்கள் முழு விநியோகச் சங்கிலி நெட்வொர்க்கும் உடனடியாக மீண்டும் மேம்படுத்தப்படும்.',
+    controller: 'கன்ட்ரோலர்',
+    supplyChainInterconnected: 'அனைத்து தொகுதிக்கೂறுகளும் ஒன்றோடொன்று இணைக்கப்பட்டுள்ளன. கீழே உள்ள எந்த மதிப்பையும் மாற்றுவது உங்கள் முழு விநியோக சங்கிலி நெட்வொர்க்கையும் உடனடியாக மறு-மேம்படுத்தும்.',
     rainProbability: 'மழை வாய்ப்பு',
-    lowRain: 'குறைந்த காற்று மற்றும் மழை இல்லை. பூச்சி கட்டுப்பாடு செய்ய இது நல்ல நேரம்.',
-    highRain: 'அதிக மழை பெய்ய வாய்ப்புள்ளது. இன்று பெரும்பாலான பயிர்களுக்கு இயற்கை நீர்ப்பாசனமே போதுமானது.',
-    aiAdvice: 'வானிலை முறைகள் உரங்களின் செயல்திறனைப் பாதிக்கும். மழைக்கு குறைந்தது 6 மணி நேரத்திற்கு முன்பே உரமிடவும்.'
-  },
-  Telugu: {
-    dashboard: 'డాష్‌బోర్డ్',
-    cropAdvisor: 'పంట సలహాదారు',
-    market: 'మార్కెట్',
-    inventory: 'ఇన్వెంటరీ',
-    aiAssistant: 'AI సహాయకుడు',
-    profile: 'ప్రొఫైల్',
-    logout: 'లాగ్ అవుట్',
-    notifications: 'నోటిఫికేషన్లు',
-    quickActions: 'శీఘ్ర చర్యలు',
-    deliveryMonitor: 'డెలివరీ మానిటర్',
-    traceability: 'ట్రేసిబిలిటీ',
-    loadOptimizer: 'లోడ్ ఆప్టిమైజర్',
-    marketPrices: 'మార్కెట్ ధరలు',
-    partnerMatch: 'భాగస్వామి మ్యాచ్',
-    yieldPredictor: 'దిగుబడి అంచనా',
-    scanPlant: 'మొక్కను స్కాన్ చేయండి',
-    farmDiary: 'ఫార్మ్ డైరీ',
-    weatherForecast: 'వాతావరణ సూచన',
-    realTimeDashboard: 'రియల్ టైమ్ డాష్‌బోర్డ్',
-    reactiveIntelligence: 'రియాక్టివ్ ఇంటెలిజెన్స్',
-    welcomeBack: 'తిరిగి స్వాగతం,',
-    activeShipments: 'క్రియాశీల సరుకులు',
-    smartChain: 'స్మార్ట్ చైన్',
-    controller: 'కంట్రోలర్',
-    supplyChainInterconnected: 'అన్ని మాడ్యూల్స్ పరస్పరం అనుసంధానించబడి ఉన్నాయి. దిగువన ఉన్న ఏ విలువనైనా మార్చడం వల్ల మీ మొత్తం సరఫరా గొలుసు నెట్‌వర్క్ తక్షణమే మళ్లీ ఆప్టిమైజ్ చేయబడుతుంది.',
-    rainProbability: 'వర్షం శాతం',
-    lowRain: 'తక్కువ గాలి మరియు వర్షం సూచన లేదు. తెగుళ్ల నివారణకు ఇది మంచి సమయం.',
-    highRain: 'అధిక వర్షపాతం వచ్చే అవకాశం ఉంది. నేడు చాలా పంటలకు సహజ నీరు సరిపోతుంది.',
-    aiAdvice: 'వాతావరణ పరిస్థితులు ఎరువుల వాడకాన్ని ప్రభావితం చేస్తాయి. వర్షానికి కనీసం 6 గంటల ముందు ఎరువులు వేయండి.'
+    lowRain: 'குறைந்த காற்று மற்றும் மழை முன்னறிவிப்பு இல்லை. பூச்சி கட்டுப்பாட்டுக்கு இது நல்ல நேரம்.',
+    highRain: 'அதிக மழை பெய்ய வாய்ப்புள்ளது. இன்று பெரும்பாலான பயிர்களுக்கு இயற்கை நீர் போதுமானதாக இருக்கும்.',
+    aiAdvice: 'வானிலை முறைகள் உரப் பயன்பாட்டைப் பாதிக்கின்றன. மழை வருவதற்கு குறைந்தது 6 மணிநேரத்திற்கு முன்பே உரம் இடவும்.'
   },
   Kannada: {
     dashboard: 'ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',
@@ -491,46 +467,95 @@ const UI_TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     weatherForecast: 'ಹವಾಮಾನ ಮುನ್ಸೂಚನೆ',
     realTimeDashboard: 'ರಿಯಲ್-ಟೈಮ್ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',
     reactiveIntelligence: 'ರಿಯಾಕ್ಟಿವ್ ಇಂಟೆಲಿಜೆನ್ಸ್',
-    welcomeBack: 'ಮತ್ತೆ ಸ್ವಾಗತ,',
-    activeShipments: 'ಸಕ್ರಿಯ ಸಾಗಣೆಗಳು',
-    smartChain: 'ಸ್ಮಾರ್ಟ್ ಚೈನ್',
-    controller: 'ಕಂಟ್ರೋಲರ್',
-    supplyChainInterconnected: 'ಎಲ್ಲಾ ಮಾಡ್ಯೂಲ್‌ಗಳು ಪರಸ್ಪರ ಸಂಪರ್ಕ ಹೊಂದಿವೆ. ಕೆಳಗಿನ ಯಾವುದೇ ಮೌಲ್ಯವನ್ನು ಬದಲಾಯಿಸುವುದು ನಿಮ್ಮ ಇಡೀ ಪೂರೈಕೆ ಸರಪಳಿ ನೆಟ್‌ವರ್ಕ್ ಅನ್ನು ತಕ್ಷಣವೇ ಮರು-ಆಪ್ಟಿಮೈಜ್ ಮಾಡುತ್ತದೆ.',
-    rainProbability: 'ಮಳೆ ಸಂಭವನೀಯತೆ',
-    lowRain: 'ಕಡಿಮೆ ಗಾಳಿ ಮತ್ತು ಮಳೆಯ ಮುನ್ಸೂಚನೆ ಇಲ್ಲ. ಕೀಟ ನಿಯಂತ್ರಣಕ್ಕೆ ಇದು ಒಳ್ಳೆಯ ಸಮಯ.',
-    highRain: 'ಹೆಚ್ಚಿನ ಮಳೆಯ ಸಾಧ್ಯತೆ ಕಂಡುಬಂದಿದೆ. ಇಂದು ಹೆಚ್ಚಿನ ಬೆಳೆಗಳಿಗೆ ನೈಸರ್ಗಿಕ ನೀರುಣಿಸುವಿಕೆ ಸಾಕಾಗುತ್ತದೆ.',
-    aiAdvice: 'ಹವಾಮಾನ ಮಾದರಿಗಳು ಗೊಬ್ಬರದ ಬಳಕೆಯ ಮೇಲೆ ಪರಿಣಾಮ ಬೀರುತ್ತವೆ. ಮಳೆ ಬರುವ ಕನಿಷ್ಠ 6 ಗಂಟೆಗಳ ಮೊದಲು ಗೊಬ್ಬರ ಹಾಕಿ.'
+    welcomeBack: 'ಮತ್ತೆ ಸ್ವ�  },
+  Gujarati: {��ల్-టైమ్ డ్యాష్‌బోర్డ్',
+    reactiveIntelligence: 'రియాక్టివ్ ఇంటెలిజెన్స్',
+    welcomeBack: 'స్వాగతం,',
+    activeShipments: 'ప్రస్తుత రవాణా',
+    smartChain: 'స్మార్ట్ చైన్',
+    controller: 'కంట్రోలర్',
+    supplyChainInterconnected: 'అన్ని మాడ్యూల్స్ ఒకదానికొకటి అనుసంధానించబడి ఉన్నాయి. దిగువన ఉన్న ఏ విలువను మార్చినా మీ మొత్తం సరఫరా గొలుసు నెట్‌వర్క్ తక్షణమే రీ-ఆప్టిమైజ్ చేయబడుతుంది.',
+    rainProbability: 'వర్షపాతం అవకాశం',
+    lowRain: 'తక్కువ గాలి మరియు వర్షం సూచన లేదు. తెగుళ్ల నివారణకు ఇది మంచి సమయం.',
+    highRain: 'అధిక వర్షపాతం వచ్చే అవకాశం ఉంది. నేడు చాలా పంటలకు సహజ నీరు సరిపోతుంది.',
+    aiAdvice: 'వాతావరణ పరిస్థితులు ఎరువుల వాడకాన్ని ప్రభావితం చేస్తాయి. వర్షానికి కనీసం 6 గంటల ముందు ఎరువులు వేయండి.'
   },
-  Bengali: {
-    dashboard: 'ড্যাশবোর্ড',
-    cropAdvisor: 'ফসল উপদেষ্টা',
-    market: 'বাজার',
-    inventory: 'ইনভেন্টরি',
-    aiAssistant: 'এআই সহকারী',
-    profile: 'প্রোফাইল',
-    logout: 'লগ আউট',
-    notifications: 'বিজ্ঞপ্তি',
-    quickActions: 'দ্রুত পদক্ষেপ',
-    deliveryMonitor: 'ডেলিভারি মনিটর',
-    traceability: 'ট্রেসেবিলিটি',
-    loadOptimizer: 'লোড অপ্টিমাইজার',
-    marketPrices: 'বাজারের দাম',
-    partnerMatch: 'পার্টনার ম্যাচ',
-    yieldPredictor: 'ফলন ভবিষ্যদ্বাণী',
-    scanPlant: 'গাছ স্ক্যান করুন',
-    farmDiary: 'ফার্ম ডায়েরি',
-    weatherForecast: 'আবহাওয়ার পূর্বাভাস',
-    realTimeDashboard: 'রিয়েল-টাইม ড্যাশবোর্ড',
-    reactiveIntelligence: 'রিঅ্যাক্টিভ ইন্টেলিজেন্স',
-    welcomeBack: 'স্বাগত,',
-    activeShipments: 'সক্রিয় চালান',
-    smartChain: 'স্মার্ট চেইন',
-    controller: 'কন্ট্রোলার',
-    supplyChainInterconnected: 'সব মডিউল একে অপরের সাথে সংযুক্ত। নিচের যেকোনো মান পরিবর্তন করলে তাৎক্ষণিকভাবে আপনার পুরো সাপ্লাই চেইন নেটওয়ার্ক আবার অপ্টিমাইজ হয়ে যাবে।',
-    rainProbability: 'বৃষ্টির সম্ভাবনা',
-    lowRain: 'কম বাতাস এবং বৃষ্টির পূর্বাভাস নেই। পোকামাকড় নিয়ন্ত্রণের জন্য এটি ভালো সময়।',
-    highRain: 'ভারী বৃষ্টির সম্ভাবনা রয়েছে। আজ বেশিরভাগ ফসলের জন্য প্রাকৃতিক জলই যথেষ্ট হবে।',
-    aiAdvice: 'আবহাওয়ার ধরণ সারের কার্যকারিতার ওপর প্রভাব ফেলে। বৃষ্টির অন্তত ৬ ঘণ্টা আগে সার প্রয়োগ করুন।'
+            </div>
+              <ChevronDown size={14} className="text-brand-muted group-hover/lang:rotate-180 transition-transform" />
+            </button>
+            <div className="absolute top-[calc(100%+8px)] right-0 w-64 bg-white border border-brand-border rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[60] overflow-hidden">
+               <div className="p-2 grid grid-cols-1 gap-1 max-h-[400px] overflow-y-auto custom-scrollbar">
+                  {LANGUAGES.map((lang) => (
+                    <button 
+                      key={lang.id}
+                      onClick={() => setLanguage(lang.id)}
+                      className={`w-full text-left px-4 py-3 rounded-xl text-sm transition-all flex items-center justify-between group/item ${
+                        language === lang.id 
+                          ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20' 
+                          : 'hover:bg-brand-surface text-brand-dark'
+                      }`}
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-bold">{lang.name}</span>
+                        <span className={`text-[10px] uppercase tracking-widest ${language === lang.id ? 'text-white/70' : 'text-brand-muted'}`}>
+                          {lang.native}
+                        </span>
+                      </div>
+                      {language === lang.id && (
+                        <CheckCircle2 size={16} className="text-white" />
+                      )}
+                    </button>
+                  ))}
+               </div>
+            </div>
+          </div>
+          <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-brand-surface border bor        <div className="flex items-center gap-4">
+          <div className="relative group">
+            <button className="hidden sm:flex items-center gap-3 px-3 py-2 rounded-xl bg-brand-surface border border-brand-border text-brand-dark hover:border-brand-primary transition-all group/lang">
+              <div className="w-8 h-8 rounded-lg bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                <Globe size={18} />
+              </div>
+              <div className="flex flex-col items-start leading-tight pr-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-brand-muted">Language</span>
+                <span className="text-sm font-black">{LANGUAGES.find(l => l.id === language)?.native || language}</span>
+              </div>
+              <ChevronDown size={14} className="text-brand-muted group-hover/lang:rotate-180 transition-transform" />
+            </button>
+            <div className="absolute top-[calc(100%+8px)] right-0 w-64 bg-white border border-brand-border rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[60] overflow-hidden">
+               <div className="p-2 grid grid-cols-1 gap-1 max-h-[400px] overflow-y-auto custom-scrollbar">
+                  {LANGUAGES.map((lang) => (
+                    <button 
+                      key={lang.id}
+                      onClick={() => setLanguage(lang.id)}
+                      className={`w-full text-left px-4 py-3 rounded-xl text-sm transition-all flex items-center justify-between group/item ${
+                        language === lang.id 
+                          ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20' 
+                          : 'hover:bg-brand-surface text-brand-dark'
+                      }`}
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-bold">{lang.name}</span>
+                        <span className={`text-[10px] uppercase tracking-widest ${language === lang.id ? 'text-white/70' : 'text-brand-muted'}`}>
+                          {lang.native}
+                        </span>
+                      </div>
+                      {language === lang.id && (
+                        <CheckCircle2 size={16} className="text-white" />
+                      )}
+                    </button>
+                  ))}
+               </div>
+            </div>
+          </div>
+          <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-brand-surface border border-brand-border text-brand-muted hover:text-brand-primary hover:border-brand-primary transition-all">
+            <Bell size={20} />
+          </button>
+          <button onClick={() => navigateTo('profile')} className="p-1 rounded-full border-2 border-brand-primary/20 hover:border-brand-primary transition-all shadow-sm">
+            <div className="w-10 h-10 rounded-full bg-brand-primary text-white flex items-center justify-center text-sm font-black">
+              {auth.currentUser?.displayName?.[0] || 'A'}
+            </div>
+          </button>
+        </div>�� বৃষ্টির অন্তত ৬ ঘণ্টা আগে সার প্রয়োগ করুন।'
   },
   Gujarati: {
     dashboard: 'ડેશબોર્ડ',
